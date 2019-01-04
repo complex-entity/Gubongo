@@ -2,7 +2,7 @@
   "name": "gubongo",
   "version": "1.0.0",
   "description": "",
-  "main": "gobongo.js",
+  "main": "gubongo.js",
   "dependencies": {
     "matter-js": "^0.14.2"
   },
