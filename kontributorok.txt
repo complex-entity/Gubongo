@@ -1,4 +1,4 @@
-Azatyaúristen: ComplexEntitás
-Kontribútolók:
+Mindenki Kedvence: ComplexEntitás
+Kontributolok:
 	- Kimbatt
 	- KzjLe
