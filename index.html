@@ -12,22 +12,26 @@
 
     <title>Gubongó</title>
     
-    <script src="node_modules/matter-js/build/matter.js"></script>
-    <script src="http://code.jquery.com/jquery-3.1.1.js"></script>
   </head>
   <style>
     body {
-        margin:0px;
+        background: black;
         overflow: hidden;
-        height: 100%;
-        background-image: url('images/background/bg.jpg');
-        background-repeat: no-repeat;
-        background-position: center center;
     }
-    </style>
-    <body>
-     
-
-        <script type="text/javascript" src="gubongo_v.0.2.js?v=190103"></script>
+    
+    .background {
+        position: absolute;
+        top: 0px;
+        left: 0px;
+        z-index: -10;
+        user-select: none;
+        user-drag: none;
+    }
+    
+  </style>
+  <body>
+    <img src="images/background/bg.jpg" id="background-image" class="background"></img>
   </body>
+  <script type="text/javascript" src="engine.js"></script>
+  <script type="text/javascript" src="gubongo_v.0.2.js?v=190103"></script>
 </html>
