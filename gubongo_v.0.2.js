@@ -124,8 +124,6 @@ var worm_obj = function(name,level,text_color){
 
     this.create_matter_obj = function(){
 
-        let random_start = get_random_int(20,window.innerWidth-20);
-
         that.matter_obj = {
             position: {
                 x: zsak_x,
