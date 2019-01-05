@@ -53,23 +53,35 @@ ws_client.onmessage = function (event) {
 }
 
 var nameCacheCanvas = document.createElement("canvas");
-nameCacheCanvas.width = 256;
-nameCacheCanvas.height = 20;
+//nameCacheCanvas.style="border: 2px solid red";
+//document.getElementsByTagName("body")[0].appendChild(nameCacheCanvas);
+Engine.nameCacheCanvasSize = 2048;
+var nameCanvasId = 0;
+nameCacheCanvas.width = Engine.nameCacheCanvasSize;
+nameCacheCanvas.height = Engine.nameCacheCanvasSize;
 var nameCacheCanvasCtx = nameCacheCanvas.getContext("2d");
+nameCacheCanvasCtx.font = "bold 12pt sans-serif";
+nameCacheCanvasCtx.textAlign = "left";
+nameCacheCanvasCtx.textBaseline = "top";
+var nameCacheCurrentPositionX = 0;
+var nameCacheCurrentPositionY = 0;
 
 var worms_cont = [];
+const image_size = 32;
+
+var spritesheet = new Image();
+spritesheet.onload = () => Engine.loadSpriteSheet(spritesheet);
+spritesheet.src = "images/sprites/spritesheet.png";
 
 var images = {
-    'sprites_1_m': {'ul':'images/sprites/w1_ul.png','ur':'images/sprites/w1_ur.png','dl':'images/sprites/w1_dl.png','dr':'images/sprites/w1_dr.png'},
-    'sprites_3_m': {'ul':'images/sprites/w3_ul.png','ur':'images/sprites/w3_ur.png','dl':'images/sprites/w3_dl.png','dr':'images/sprites/w3_dr.png'},
-    'sprites_6_m': {'ul':'images/sprites/w6_ul.png','ur':'images/sprites/w6_ur.png','dl':'images/sprites/w6_dl.png','dr':'images/sprites/w6_dr.png'},
-    'sprites_1_y': {'ul':'images/sprites/w1y_ul.png','ur':'images/sprites/w1y_ur.png','dl':'images/sprites/w1y_dl.png','dr':'images/sprites/w1y_dr.png'},
-    'sprites_2_y': {'ul':'images/sprites/w2y_ul.png','ur':'images/sprites/w2y_ur.png','dl':'images/sprites/w2y_dl.png','dr':'images/sprites/w2y_dr.png'},
-    'sprites_3_y': {'ul':'images/sprites/w3y_ul.png','ur':'images/sprites/w3y_ur.png','dl':'images/sprites/w3y_dl.png','dr':'images/sprites/w3y_dr.png'},
+    'sprites_1_m': {'ul':2,'ur':3,'dl':0,'dr':1},
+    'sprites_3_m': {'ul':6,'ur':7,'dl':4,'dr':5},
+    'sprites_6_m': {'ul':10,'ur':11,'dl':8,'dr':9},
+    'sprites_1_y': {'ul':14,'ur':15,'dl':12,'dr':13},
+    'sprites_2_y': {'ul':18,'ur':19,'dl':16,'dr':17},
+    'sprites_3_y': {'ul':22,'ur':23,'dl':20,'dr':21},
 }
 
-var image_cache = {};
-preload_images();
 
 
 var platform_objects = [];
@@ -110,16 +122,40 @@ var worm_obj = function(name,level,text_color){
     this.name = name;
     this.force_direction_change = false;
     
-    nameCacheCanvasCtx.font = "bold 12pt sans-serif"; // ez azert kell ide ele is hogy jo legyen a betumeret
-    nameCacheCanvas.width = nameCacheCanvasCtx.measureText(name).width;
-    nameCacheCanvasCtx.textAlign = "left";
-    nameCacheCanvasCtx.textBaseline = "top";
-    nameCacheCanvasCtx.font = "bold 12pt sans-serif";
+    var width = Math.ceil(nameCacheCanvasCtx.measureText(name).width);
     nameCacheCanvasCtx.fillStyle = text_color;
-    nameCacheCanvasCtx.fillText(name, 0, 0);
-    var name_image = new Image();
-    name_image.src = nameCacheCanvas.toDataURL("image/png");
-
+    if (nameCacheCurrentPositionX + width > Engine.nameCacheCanvasSize)
+    {
+        nameCacheCurrentPositionX = 0;
+        nameCacheCurrentPositionY += 20;
+    }
+    
+    if (nameCacheCurrentPositionY + 20 > Engine.nameCacheCanvasSize)
+    {
+        // itt lecsereljuk az elozo canvast, mivel az tele van
+        // a memoriaban meg ott marad, szoval minden jol fog mukodni
+        Engine.addFullNameCanvas(nameCacheCanvas, nameCanvasId);
+        ++nameCanvasId;
+        
+        nameCacheCanvas = document.createElement("canvas");
+        nameCacheCanvas.width = Engine.nameCacheCanvasSize;
+        nameCacheCanvas.height = Engine.nameCacheCanvasSize;
+        nameCacheCanvasCtx = nameCacheCanvas.getContext("2d");
+        nameCacheCanvasCtx.font = "bold 12pt sans-serif";
+        nameCacheCanvasCtx.textAlign = "left";
+        nameCacheCanvasCtx.textBaseline = "top";
+        nameCacheCurrentPositionX = 0;
+        nameCacheCurrentPositionY = 0;
+    }
+    
+    var texturePosX = nameCacheCurrentPositionX;
+    var texturePosY = nameCacheCurrentPositionY;
+    
+    nameCacheCurrentPositionX += width;
+    nameCacheCanvasCtx.fillText(name, texturePosX, texturePosY);
+    
+    Engine.updateNameCanvas(nameCacheCanvas);
+    
     var that = this;
 
     this.create_matter_obj = function(){
@@ -133,10 +169,16 @@ var worm_obj = function(name,level,text_color){
                 x: get_random_float(200, 300) * ((that.direction=='l') ? -1 : 1) * Engine.windowWidth / 1920,
                 y: get_random_float(-1000, -300) * Engine.windowHeight / 1080
             },
-            sprite: image_cache[images['sprites_'+level][this.state+this.direction]],
+            sprite: spritesheet,
+            spriteIndex: images['sprites_'+level][this.state+this.direction],
             text: {
-                content: name_image,
-                y_offset: -10
+                content: nameCacheCanvas,
+                texturePositionX: texturePosX,
+                texturePositionY: texturePosY,
+                textureWidth: width,
+                textureHeight: 20,
+                nameCanvasId: nameCanvasId,
+                y_offset: -20
             },
             width: 32,
             height: 32,
@@ -150,7 +192,7 @@ var worm_obj = function(name,level,text_color){
     this.falling = true;
     this.check_collisions = false;
     
-    this.update_function = function(){
+    this.update_function = function(now){
         let velocity_y = that.matter_obj.velocity.y;
         if (Math.abs(velocity_y) < 0.01){
             this.falling = false;
@@ -174,7 +216,6 @@ var worm_obj = function(name,level,text_color){
             return;
         }
         
-        let now = performance.now();
         if(now - this.last_update < this.next_update){
             return;
         }
@@ -202,7 +243,7 @@ var worm_obj = function(name,level,text_color){
         let force_x = ((that.direction=='l') ? -1 : 1) * random_force_x;
 
         that.state = (that.state=='u') ? 'd' : 'u';
-        that.matter_obj.sprite = image_cache[images['sprites_'+level][that.state+that.direction]];
+        that.matter_obj.spriteIndex = images['sprites_'+level][that.state+that.direction];
         
         Engine.applyForce(that.matter_obj, force_x, force_y);
     }
@@ -213,8 +254,9 @@ var worm_obj = function(name,level,text_color){
 
 function updateWorms()
 {
+    var now = performance.now();
     for (var worm in worms_cont)
-        worms_cont[worm].update_function();
+        worms_cont[worm].update_function(now);
     
     window.requestAnimationFrame(updateWorms);
 }
@@ -250,29 +292,33 @@ function get_random_float(min, max) {
     return Math.random() * (max - min) + min;
 }
 
-function preload_image(url){
-    var img=new Image();
-    img.src=url;
-    image_cache[url] = img;
-}
-
-function preload_images(){
-    for (var key in images) {
-        if(typeof(images[key])=='object'){
-            for (var image_type in images[key]) {
-                preload_image(images[key][image_type]);
-            }
-        }
-    }
-}
+//function preload_image(url){
+//    var img=new Image();
+//    img.src=url;
+//    image_cache[url] = img;
+//}
+//
+//function preload_images(){
+//    for (var key in images) {
+//        if(typeof(images[key])=='object'){
+//            for (var image_type in images[key]) {
+//                preload_image(images[key][image_type]);
+//            }
+//        }
+//    }
+//}
 
 // debug
-/*
-for (let i = 0; i < 30; ++i)
-{
-    var name_color = '#d8ff7f';
-    var sub_num = Math.random() * 40;
-    let worm = new worm_obj("Féreg " + i, get_worm_level(sub_num), name_color);
-    Engine.addBody(worm.matter_obj);
+var debug_worm_count = 0;
+function spawn_worms(count){
+    for (let i = 0; i < count; ++i){
+        var name_color = '#' +
+                         (Math.random() * 256 | 0).toString(16).padStart(2, "0") +
+                         (Math.random() * 256 | 0).toString(16).padStart(2, "0") +
+                         (Math.random() * 256 | 0).toString(16).padStart(2, "0");
+        
+        var sub_num = Math.random() * 40;
+        let worm = new worm_obj("Féreg " + (debug_worm_count++), get_worm_level(sub_num), name_color);
+        Engine.addBody(worm.matter_obj);
+    }
 }
-*/
