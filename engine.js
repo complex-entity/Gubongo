@@ -8,8 +8,9 @@ Engine.bodyCounter = 0;
 Engine.colliderCounter = 0;
 Engine.windowWidth = 0;
 Engine.windowHeight = 0;
-(() =>
-{
+
+(function () {
+
     Engine.windowWidth = document.documentElement.clientWidth;
     Engine.windowHeight = document.documentElement.clientHeight;
     window.addEventListener("resize", function()
@@ -398,27 +399,27 @@ Engine.windowHeight = 0;
     
     function WebglInit()
     {
-        var vertexShader = `
-            attribute vec2 aVertex;
-            attribute vec2 aUV;
-            varying vec2 vTex;
-            uniform vec2 pos;
-            void main()
-            {
-                gl_Position = vec4(aVertex + pos, 0.0, 1.0);
-                vTex = aUV;
-            }
-        `;
+        var vertexShader = "\
+            attribute vec2 aVertex;\
+            attribute vec2 aUV;\
+            varying vec2 vTex;\
+            uniform vec2 pos;\
+            void main()\
+            {\
+                gl_Position = vec4(aVertex + pos, 0.0, 1.0);\
+                vTex = aUV;\
+            }\
+        ";
 
-        var fragmentShader = `
-            precision mediump float;
-            varying vec2 vTex;
-            uniform sampler2D sampler0;
-            void main()
-            {
-                gl_FragColor = texture2D(sampler0, vTex);
-            }
-        `;
+        var fragmentShader = "\
+            precision mediump float;\
+            varying vec2 vTex;\
+            uniform sampler2D sampler0;\
+            void main()\
+            {\
+                gl_FragColor = texture2D(sampler0, vTex);\
+            }\
+        ";
         
         ctx.enable(ctx.BLEND);
         var vertShaderObj = ctx.createShader(ctx.VERTEX_SHADER);
@@ -460,18 +461,24 @@ Engine.windowHeight = 0;
     {
         canvasObject = document.createElement("canvas");
         document.getElementsByTagName("body")[0].appendChild(canvasObject);
-        ctx = canvasObject.getContext("webgl");
+        ctx = canvasObject.getContext("webgl") || canvasObject.getContext( 'experimental-webgl' );;
         canvasObject.width = Engine.windowWidth;
         canvasObject.height = Engine.windowHeight;
-        canvasObject.style = "position: absolute; top: 0px; left: 0px; z-index: 0;";
+        canvasObject.style.position = 'absolute';
+        canvasObject.style.top = '0px';
+        canvasObject.style.left = '0px';
+        canvasObject.style.zIndex = 0;
         
         canvasObject_static = document.createElement("canvas");
         document.getElementsByTagName("body")[0].appendChild(canvasObject_static);
         ctx_static = canvasObject_static.getContext("2d");
         canvasObject_static.width = Engine.windowWidth;
         canvasObject_static.height = Engine.windowHeight;
-        canvasObject_static.style = "position: absolute; top: 0px; left: 0px; z-index: -1;";
-        
+        canvasObject_static.style.position = 'absolute';
+        canvasObject_static.style.top = '0px';
+        canvasObject_static.style.left = '0px';
+        canvasObject_static.style.zIndex = -1;
+
         Engine.ctx = ctx;
         Engine.ctx_static = ctx_static;
         ctx.textAlign = "center";
@@ -481,10 +488,11 @@ Engine.windowHeight = 0;
     
     Initialize();
     window.requestAnimationFrame(Run);
+    
 })();
 
 Engine.addBody = function(body)
-{
+{ 
     if (!body || !body.width || !body.height)
     {
         throw "Body must exist and must have width and height set";
@@ -529,7 +537,13 @@ Engine.addBody = function(body)
     }
     
     if (body.isStatic && body.sprite)
-        Engine.ctx_static.drawImage(body.sprite, body.position.x, body.position.y);
+    {
+        try{
+            Engine.ctx_static.drawImage(body.sprite, body.position.x, body.position.y);
+        } catch (e){
+            console.log(e);
+        }
+    }
     
     if (!body.velocity)
     {

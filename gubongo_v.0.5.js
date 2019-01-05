@@ -70,7 +70,9 @@ var worms_cont = [];
 const image_size = 32;
 
 var spritesheet = new Image();
-spritesheet.onload = () => Engine.loadSpriteSheet(spritesheet);
+spritesheet.onload = function(){
+    Engine.loadSpriteSheet(spritesheet);
+}
 spritesheet.src = "images/sprites/spritesheet.png";
 
 var images = {
