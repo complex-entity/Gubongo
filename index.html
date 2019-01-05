@@ -12,26 +12,26 @@
 
     <title>Gubongó</title>
     
+    <style>
+      body {
+          background-color: black;
+          overflow: hidden;
+      }
+      
+      .background {
+          position: absolute;
+          top: 0px;
+          left: 0px;
+          z-index: -10;
+          user-select: none;
+          user-drag: none;
+      }
+      
+    </style>
   </head>
-  <style>
-    body {
-        background: black;
-        overflow: hidden;
-    }
-    
-    .background {
-        position: absolute;
-        top: 0px;
-        left: 0px;
-        z-index: -10;
-        user-select: none;
-        user-drag: none;
-    }
-    
-  </style>
   <body>
-    <img src="images/background/bg.jpg" id="background-image" class="background"></img>
+    <img src="images/background/bg.jpg" id="background-image" class="background"/>
+    <script type="text/javascript" src="engine.js"></script>
+    <script type="text/javascript" src="gubongo_v.0.5.js?v=190103"></script>
   </body>
-  <script type="text/javascript" src="engine.js"></script>
-  <script type="text/javascript" src="gubongo_v.0.2.js?v=190103"></script>
 </html>
