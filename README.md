@@ -4,4 +4,10 @@ Csodálatos FéregTv - chatjét vizualizáló web alkalmazás. Egy websocket szo
 # install
 npm install
 
-utána csak menyitod az index.html-t
+# build
+npm run build
+open dist/index.html
+
+# development
+npm run start
+open http://localhost:8080
