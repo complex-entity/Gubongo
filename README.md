@@ -1,13 +1,19 @@
 # Gubongo
 Csodálatos FéregTv - chatjét vizualizáló web alkalmazás. Egy websocket szolgáltatáshoz csatlakozva megjeleníti a csatorna chatjére író felhasználók "kukacát".
 
-# install
+# Install
+```sh
 npm install
+```
 
-# build
+# Build
+```sh
 npm run build
-open dist/index.html
+```
+Open dist/index.html
 
-# development
+# Development
+```sh
 npm run start
-open http://localhost:8080
+```
+Open http://localhost:8080
