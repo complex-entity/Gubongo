@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "description": "",
   "main": "gubongo.js",
-  "dependencies": {},
+  "dependencies": {
+    "phaser": "^3.16.1"
+  },
   "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
