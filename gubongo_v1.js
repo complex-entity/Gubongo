@@ -1,35 +1,35 @@
 const config = {
-    type: Phaser.WEBGL,
-    width: 1920,
-    height: 1080,
-    parent: "game-container",
-    pixelArt: true,
-    scene: {
+  type: Phaser.WEBGL,
+  width: 1920,
+  height: 1080,
+  parent: "game-container",
+  pixelArt: true,
+  scene: {
       preload: preload,
       create: create,
       update: update
-    },
-    physics: {
-        default: 'impact',
-        impact: { gravity: 400 }
-    },
-  };
+  },
+  physics: {
+      default: 'impact',
+      impact: { gravity: 400 }
+  },
+};
   
-  var game = new Phaser.Game(config);
-  let controls;
-  var player;
+var game = new Phaser.Game(config);
+var worms_cont = [];
+var update_speed = 12;
+var last_update = 0;
 
-  var tyabi = {direction_x:'right',direction_y:'up',sprite:null,min_x:100,max_x:1800,min_y:60,max_y:110};
-
+var tyabi = {direction_x:'right',direction_y:'up',sprite:null,min_x:100,max_x:1800,min_y:60,max_y:110};
   
-  function preload() {
+function preload() {
     this.load.image("tiles", "assets/sprites/spritesheet.png");
     this.load.tilemapTiledJSON("map", "assets/tilemap/gubongo_map.json");
     this.load.spritesheet('player', 'assets/sprites/kukacok.png',{ frameWidth: 32, frameHeight: 32 });
     this.load.spritesheet('tyabi', 'assets/sprites/tyabi_sp.png',{ frameWidth: 97, frameHeight: 120  });
-  }
+}
   
-  function create() {
+function create() {
 
     const map = this.make.tilemap({ key: "map" });
     const tileset = map.addTilesetImage("ts", "tiles");
@@ -44,6 +44,8 @@ const config = {
     this.impact.world.setCollisionMapFromTilemapLayer(ground, { slopeProperty: 'slope' });
 
     tyabi.sprite = this.add.sprite(100, 100,'tyabi');
+
+    worms_cont.push(new Worm(this,1,tyabi.x,tyabi.y));
     
     this.anims.create({
       key: 'tyabi-turn-left',
@@ -57,29 +59,28 @@ const config = {
       frameRate: 20
     });
 
-    player = this.impact.add.sprite(100, 32,'player');
-    player.setMaxVelocity(300, 400).setFriction(800, 0);
-    player.body.accelGround = 1200;
-    player.body.accelAir = 600;
-    player.body.jumpSpeed = 300;
-
-    var style = { font: "12px Arial", fill: "#ff0044", wordWrap: true, wordWrapWidth: player.width, align: "center", backgroundColor: "#fff" };
-
-    text = this.add.text(0, 0, "kukacka", style);
-
     this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
     //this.cameras.main.startFollow(player);
 
     cursors = this.input.keyboard.createCursorKeys();
     //camera.setBackgroundColor('rgba(208, 244, 247, 1)');
   
-  }
+}
   
-  function update(time, delta) {
+function update(time, delta) {
 
     update_tyabi();
 
-    var accel = player.body.standing ? player.body.accelGround : player.body.accelAir;
+    if(time>=last_update+update_speed){
+      if(worms_cont.length>0){
+        worms_cont.forEach(function(worm,index){
+          worm.update();
+        })
+      }
+      last_update = time;
+    }
+
+   /* var accel = player.body.standing ? player.body.accelGround : player.body.accelAir;
 
     if (cursors.left.isDown)
     {
@@ -100,14 +101,51 @@ const config = {
     }
 
     text.x = Math.floor(player.x + player.width / 2);
-    text.y = Math.floor(player.y + player.height / 2);
+    text.y = Math.floor(player.y + player.height / 2);*/
 
     
 /*var today = new Date();
 var time = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds();
     */
     //console.log(time);
+}
+
+var Worm = new Phaser.Class({
+
+  initialize:
+
+  function Worm (scene, level, x, y)
+  {
+    this.speed = 200;
+
+    this.sprite = scene.impact.add.sprite(100, 32,'player');
+    this.sprite.setMaxVelocity(300, 400).setFriction(800, 0);
+    this.sprite.body.accelGround = 1200;
+    this.sprite.body.accelAir = 600;
+    this.sprite.body.jumpSpeed = 300;
+
+    var style = { font: "13px Arial", fill: "#ff0044", align: "center", backgroundColor: "#fff" };
+    
+    this.label_text = scene.add.text(0, 0, "kukacka akinek hosszú", style);
+  },
+
+  update: function (time)
+  {
+      this.label_text.x = Math.floor(this.sprite.x) - (this.label_text.width / 2) ;
+      this.label_text.y = Math.floor(this.sprite.y + this.sprite.height / 2) - 50;
+
+      return this.move(time);
+  },
+
+  move: function (time)
+  {
+      
+      this.direction = this.heading;
+
+      return true;
   }
+
+});
 
 function update_tyabi(){
 
