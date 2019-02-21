@@ -16,7 +16,9 @@ const config = {
 };
   
 var game = new Phaser.Game(config);
+var scene_obj = null;
 var worms_cont = [];
+var worms_names = [];
 var update_speed = 12;
 var last_update = 0;
 
@@ -31,6 +33,8 @@ function preload() {
   
 function create() {
 
+    scene_obj = this;
+
     const map = this.make.tilemap({ key: "map" });
     const tileset = map.addTilesetImage("ts", "tiles");
       
@@ -42,11 +46,9 @@ function create() {
     ground.setCollisionByProperty({ collides: true });
 
     this.impact.world.setCollisionMapFromTilemapLayer(ground, { slopeProperty: 'slope' });
-
+    
     tyabi.sprite = this.add.sprite(100, 100,'tyabi');
 
-    worms_cont.push(new Worm(this,1,tyabi.x,tyabi.y));
-    
     this.anims.create({
       key: 'tyabi-turn-left',
       frames: [ { key: 'tyabi', frame: 2 } ],
@@ -114,19 +116,27 @@ var Worm = new Phaser.Class({
 
   initialize:
 
-  function Worm (scene, level, x, y)
+  function Worm (level, name, color)
   {
     this.speed = 200;
 
-    this.sprite = scene.impact.add.sprite(100, 32,'player');
+    this.sprite = scene_obj.impact.add.sprite(tyabi.sprite.x, tyabi.sprite.y,'player');
     this.sprite.setMaxVelocity(300, 400).setFriction(800, 0);
     this.sprite.body.accelGround = 1200;
     this.sprite.body.accelAir = 600;
     this.sprite.body.jumpSpeed = 300;
+    this.level = level * 4;
+    this.name = name;
+    this.name_color = Phaser.Math.between(0,2);
 
-    var style = { font: "13px Arial", fill: "#ff0044", align: "center", backgroundColor: "#fff" };
+    this.direction = (Phaser.ut)
+
+    this.sprite.setFrame(this.level);
+
+    // backgroundColor: "#fff"
+    var style = { font: "14px Arial", fill: this.name_color, align: "center" };
     
-    this.label_text = scene.add.text(0, 0, "kukacka akinek hosszú", style);
+    this.label_text = scene_obj.add.text(tyabi.sprite.x, tyabi.sprite.y, ' '+name+' ', style);
   },
 
   update: function (time)
@@ -184,3 +194,46 @@ function update_tyabi(){
   }
 
 }
+
+function get_worm_level(level){
+
+  var worm_key = '0';
+
+  if(level>=3 && level<6) {
+      worm_key = '1';
+  } else if (level>=6 && level<12){
+      worm_key = '2';
+  } else if (level>=12 && level<24){
+      worm_key = '3';
+  } else if (level>=24 && level<36){
+      worm_key = '4';
+  } else if(level>=36) {
+      worm_key = '5';
+  }
+
+  return worm_key;
+}
+
+var ws_client = new WebSocket('ws://home.molnarmark.hu:8888');
+ws_client.onmessage = function (event) {
+
+    var ws_data = JSON.parse(event.data);
+
+    if(ws_data.bot_command!=undefined){
+        if(ws_data.bot_command=='refresh'){
+            window.location.reload();
+        }
+    }else if(worms_cont[ws_data['display-name']]==undefined){
+
+        if(!worms_names[ws_data['display-name']]){
+          var name_color = (ws_data.color) ? ws_data.color : '#666666';
+          var sub_num = (ws_data.badges!=null && ws_data.badges.subscriber!=undefined) ? ws_data.badges.subscriber :  0;
+          worms_cont.push(new Worm(get_worm_level(sub_num),ws_data['display-name'],name_color));
+          worms_names[ws_data['display-name']] = 1;
+        }
+    }
+}
+
+setTimeout(function(){
+  worms_cont.push(new Worm(get_worm_level(4),'kulac','#333'));
+},1000)
