@@ -43,9 +43,13 @@ function create() {
     const notcollidingitems = map.createStaticLayer("notcollidingitems", tileset, 0, 0);
     const ground = map.createStaticLayer("ground", tileset, 0, 0);
 
-    ground.setCollisionByProperty({ collides: true });
-
+    ground.setCollisionByProperty({ collides: true, goal: true });
     this.impact.world.setCollisionMapFromTilemapLayer(ground, { slopeProperty: 'slope' });
+
+    /*
+    this.impact.world.on('collide', function(event){
+      alert('ok');
+    });*/
     
     tyabi.sprite = this.add.sprite(100, 100,'tyabi');
 
@@ -61,11 +65,16 @@ function create() {
       frameRate: 20
     });
 
-    this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
-    //this.cameras.main.startFollow(player);
+    this.anims.create({
+      key: 'worm-left-1',
+      frames: this.anims.generateFrameNumbers('player', { start: 0, end: 1 }),
+      frameRate: 1,
+      repeat: -1
+    });
 
-    cursors = this.input.keyboard.createCursorKeys();
-    //camera.setBackgroundColor('rgba(208, 244, 247, 1)');
+    this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
+
+    //cursors = this.input.keyboard.createCursorKeys();
   
 }
   
@@ -76,40 +85,12 @@ function update(time, delta) {
     if(time>=last_update+update_speed){
       if(worms_cont.length>0){
         worms_cont.forEach(function(worm,index){
-          worm.update();
+          worm.update(time);
         })
       }
       last_update = time;
     }
 
-   /* var accel = player.body.standing ? player.body.accelGround : player.body.accelAir;
-
-    if (cursors.left.isDown)
-    {
-        player.setAccelerationX(-accel);
-    }
-    else if (cursors.right.isDown)
-    {
-        player.setAccelerationX(accel);
-    }
-    else
-    {
-        player.setAccelerationX(0);
-    }
-
-    if (cursors.up.isDown && player.body.standing)
-    {
-        player.setVelocityY(-player.body.jumpSpeed);
-    }
-
-    text.x = Math.floor(player.x + player.width / 2);
-    text.y = Math.floor(player.y + player.height / 2);*/
-
-    
-/*var today = new Date();
-var time = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds();
-    */
-    //console.log(time);
 }
 
 var Worm = new Phaser.Class({
@@ -122,21 +103,42 @@ var Worm = new Phaser.Class({
 
     this.sprite = scene_obj.impact.add.sprite(tyabi.sprite.x, tyabi.sprite.y,'player');
     this.sprite.setMaxVelocity(300, 400).setFriction(800, 0);
-    this.sprite.body.accelGround = 1200;
-    this.sprite.body.accelAir = 600;
-    this.sprite.body.jumpSpeed = 300;
-    this.level = level * 4;
+    this.level = level;
     this.name = name;
-    this.name_color = Phaser.Math.between(0,2);
+    this.name_color = color;
 
-    this.direction = (Phaser.ut)
+    this.current_frame = 0;
+    this.last_mooved = 0;
+    this.move_freq = 1000;
+    this.chace_to_turn = 10;
+    this.chace_to_jump = 20;
 
-    this.sprite.setFrame(this.level);
+    this.direction = Phaser.Math.Between(0,1)==1 ? 'left' : 'right';
 
-    // backgroundColor: "#fff"
+    this.setFrame(this.level,this.direction)
+
     var style = { font: "14px Arial", fill: this.name_color, align: "center" };
-    
     this.label_text = scene_obj.add.text(tyabi.sprite.x, tyabi.sprite.y, ' '+name+' ', style);
+
+  },
+
+  setFrame: function(level,direction)
+  {
+    var frame_by_level = 4 * level;
+    var frame1,frame2;
+
+    if(direction=='left'){
+      frame1 = frame_by_level;
+      frame2 = frame_by_level + 1;
+    }else{
+      frame1 = frame_by_level + 2;
+      frame2 = frame_by_level + 3;
+    }
+
+    this.current_frame=(this.current_frame==frame1) ? frame2 : frame1;
+
+    this.sprite.setFrame(this.current_frame);
+
   },
 
   update: function (time)
@@ -149,10 +151,33 @@ var Worm = new Phaser.Class({
 
   move: function (time)
   {
-      
-      this.direction = this.heading;
+    time = parseInt(time);
 
-      return true;
+    if(time>parseInt(this.move_freq)+parseInt(this.last_mooved) || this.last_mooved==0){
+
+      var jump = (Phaser.Math.Between(0,100)<=this.chace_to_jump) ? Phaser.Math.Between(50,300) : 0;
+      var turn = (Phaser.Math.Between(0,100)<=this.chace_to_turn) ? true : false;
+
+      if(turn){
+        this.direction = (this.direction == 'left') ? 'right' : 'left';
+      }
+
+      var horosontal_velocity = Phaser.Math.Between(150,300) * ( (this.direction=='left') ? -1 : 1 );
+
+      this.setFrame(this.level,this.direction);
+
+      if(jump){ 
+        this.sprite.setVelocityY(jump*-1);
+      }
+
+      this.sprite.setVelocityX(horosontal_velocity);
+
+
+      this.last_mooved = time;
+
+    }
+
+    return true;
   }
 
 });
@@ -233,7 +258,3 @@ ws_client.onmessage = function (event) {
         }
     }
 }
-
-setTimeout(function(){
-  worms_cont.push(new Worm(get_worm_level(4),'kulac','#333'));
-},1000)
