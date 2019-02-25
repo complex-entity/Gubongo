@@ -13,25 +13,16 @@
     <title>Gubongó</title>
     
     <style>
-      body {
-          background-color: black;
-          overflow: hidden;
+      body{
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
       }
-      
-      .background {
-          position: absolute;
-          top: 0px;
-          left: 0px;
-          z-index: -10;
-          user-select: none;
-          user-drag: none;
-      }
-      
     </style>
   </head>
   <body>
-    <img src="images/background/bg.jpg" id="background-image" class="background"/>
-    <script type="text/javascript" src="engine.js"></script>
-    <script type="text/javascript" src="gubongo_v.0.5.js?v=190105"></script>
+    <script type="text/javascript" src="node_modules/phaser/dist/phaser.min.js"></script>
+    <script type="text/javascript" src="gubongo_v1.js?v=190105"></script>
+    <div id="game-container"></div>
   </body>
 </html>
