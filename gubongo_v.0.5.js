@@ -73,18 +73,20 @@ var spritesheet = new Image();
 spritesheet.onload = function(){
     Engine.loadSpriteSheet(spritesheet);
 }
-spritesheet.src = "images/sprites/spritesheet.png";
+spritesheet.src = "images/sprites/spritesheet_v2.png";
 
 var images = {
-    'sprites_1_m': {'ul':2,'ur':3,'dl':0,'dr':1},
-    'sprites_3_m': {'ul':6,'ur':7,'dl':4,'dr':5},
-    'sprites_6_m': {'ul':10,'ur':11,'dl':8,'dr':9},
-    'sprites_1_y': {'ul':14,'ur':15,'dl':12,'dr':13},
-    'sprites_2_y': {'ul':18,'ur':19,'dl':16,'dr':17},
-    'sprites_3_y': {'ul':22,'ur':23,'dl':20,'dr':21},
+    'sprites_1_m':   {'ul':38,'ur':39,'dl':36,'dr':37},
+    'sprites_3_m':   {'ul':34,'ur':35,'dl':32,'dr':33},
+    'sprites_6_m':   {'ul':30,'ur':31,'dl':28,'dr':29},
+    'sprites_9_m':   {'ul':26,'ur':27,'dl':24,'dr':25},
+    'sprites_1_y':   {'ul':22,'ur':23,'dl':20,'dr':21},
+    'sprites_1_5_y': {'ul':18,'ur':19,'dl':16,'dr':17},
+    'sprites_2_y':   {'ul':14,'ur':15,'dl':12,'dr':13},
+    'sprites_2_5_y': {'ul':10,'ur':11,'dl':8, 'dr':9},
+    'sprites_3_y':   {'ul':6, 'ur':7, 'dl':4, 'dr':5},
+    'sprites_3_5_y': {'ul':2, 'ur':3, 'dl':0, 'dr':1},
 }
-
-
 
 var platform_objects = [];
 var platform_sprite = new Image();
@@ -271,14 +273,22 @@ function get_worm_level(level){
 
     if(level>=3 && level<6) {
         worm_key = '3_m';
-    } else if (level>=6 && level<12){
+    } else if (level>=6 && level<9){
         worm_key = '6_m';
-    } else if (level>=12 && level<24){
+    }  else if (level>=9 && level<12){
+        worm_key = '9_m';
+    } else if (level>=12 && level<18){
         worm_key = '1_y';
-    } else if (level>=24 && level<36){
+    } else if (level>=18 && level<24){
+        worm_key = '1_5_y';
+    } else if (level>=24 && level<30){
         worm_key = '2_y';
-    } else if(level>=36) {
+    } else if (level>=30 && level<36){
+        worm_key = '2_5_y';
+    } else if (level>=36 && level<42){
         worm_key = '3_y';
+    } else if(level>=42) {
+        worm_key = '3_5_y';
     }
 
     return worm_key;

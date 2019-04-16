@@ -238,12 +238,11 @@ Engine.windowHeight = 0;
             vertices[vertexIndex++] = top;
             vertices[vertexIndex++] = right;
             vertices[vertexIndex++] = top;
-            
-            
+                        
             var uvLeft = (body.spriteIndex & 3) * 0.25;
             var uvRight = uvLeft + 0.25;
-            var uvTop = (body.spriteIndex >> 2) / 6;
-            var uvBottom = uvTop + 1 / 6;
+            var uvTop = (body.spriteIndex >> 2) / 10; //Figyelem itt a 10 a sprite sorainak a száma!!!
+            var uvBottom = uvTop + 1 / 10; //Figyelem itt a 10 a sprite sorainak a száma!!!
             
             uvs[uvIndex++] = uvLeft;
             uvs[uvIndex++] = uvTop;
