@@ -21,13 +21,16 @@ var worms_cont = [];
 var worms_names = [];
 var update_speed = 12;
 var last_update = 0;
+var coin = null;
 
 var tyabi = {direction_x:'right',direction_y:'up',sprite:null,min_x:100,max_x:1800,min_y:60,max_y:110};
   
 function preload() {
-    this.load.image("tiles", "assets/sprites/spritesheet.png");
-    this.load.tilemapTiledJSON("map", "assets/tilemap/gubongo_map.json");
+    this.load.image("tiles", "assets/sprites/spritesheet_64x.png");
+    this.load.image("bg", "assets/sprites/background.png");
+    this.load.tilemapTiledJSON("map", "assets/tilemap/gubongo_64map.json");
     this.load.spritesheet('player', 'assets/sprites/kukacok.png',{ frameWidth: 32, frameHeight: 32 });
+    this.load.spritesheet('coin', 'assets/sprites/coin_anim.png',{ frameWidth: 32, frameHeight: 32 });
     this.load.spritesheet('tyabi', 'assets/sprites/tyabi_sp.png',{ frameWidth: 97, frameHeight: 120  });
 }
   
@@ -35,23 +38,38 @@ function create() {
 
     scene_obj = this;
 
+    this.add.image(960, 540, 'bg');
+
     const map = this.make.tilemap({ key: "map" });
-    const tileset = map.addTilesetImage("ts", "tiles");
+    const tileset = map.addTilesetImage("spritesheet_64x", "tiles");
       
-    const sky = map.createStaticLayer("sky", tileset, 0, 0);
-    const bg = map.createStaticLayer("bg", tileset, 0, 0);
+    //const sky = map.createStaticLayer("sky", tileset, 0, 0);
+    //const bg = map.createStaticLayer("bg", tileset, 0, 0);
     const notcollidingitems = map.createStaticLayer("notcollidingitems", tileset, 0, 0);
     const ground = map.createStaticLayer("ground", tileset, 0, 0);
 
+    //ground.setCollisionBetween(9, 16);
+    var slopeMap = { 10: 1, 11: 1, 12: 1, 12: 1, 13: 1, 14: 1, 15: 1, 16:1, 17:1, 8:1, 18:1 };
     ground.setCollisionByProperty({ collides: true, goal: true });
-    this.impact.world.setCollisionMapFromTilemapLayer(ground, { slopeProperty: 'slope' });
-
+    //this.impact.world.setCollisionMapFromTilemapLayer(ground, { }); // slopeProperty: 'slope'
+    this.impact.world.setCollisionMapFromTilemapLayer(ground, { slopeMap: slopeMap });
+    
     /*
     this.impact.world.on('collide', function(event){
       alert('ok');
     });*/
     
     tyabi.sprite = this.add.sprite(100, 100,'tyabi');
+    coin = this.impact.add.sprite(990, 860,'coin');
+
+    this.anims.create({
+      key: 'coin-flip',
+      frames: this.anims.generateFrameNumbers('coin', { start: 0, end: 16 }),
+      frameRate: 20,
+      repeat: -1
+    });
+
+    coin.anims.play('coin-flip');
 
     this.anims.create({
       key: 'tyabi-turn-left',
@@ -111,7 +129,7 @@ var Worm = new Phaser.Class({
     this.last_mooved = 0;
     this.move_freq = 1000;
     this.chace_to_turn = 10;
-    this.chace_to_jump = 20;
+    this.chace_to_jump = 15;
 
     this.direction = Phaser.Math.Between(0,1)==1 ? 'left' : 'right';
 
@@ -149,14 +167,32 @@ var Worm = new Phaser.Class({
       return this.move(time);
   },
 
+  check_victory: function()
+  {
+      if(
+        (this.sprite.x >= (coin.x - 16) && this.sprite.x <= (coin.x + 16))
+        && (this.sprite.y >= (coin.y - 16) && this.sprite.y <= (coin.y + 16))
+      )
+      {
+        console.log(this);
+      }
+  },
+
   move: function (time)
   {
     time = parseInt(time);
 
+    this.check_victory();
+
     if(time>parseInt(this.move_freq)+parseInt(this.last_mooved) || this.last_mooved==0){
 
       var jump = (Phaser.Math.Between(0,100)<=this.chace_to_jump) ? Phaser.Math.Between(50,300) : 0;
-      var turn = (Phaser.Math.Between(0,100)<=this.chace_to_turn) ? true : false;
+      
+      if ( (this.sprite.x <= 90 && this.direction==='left') || (this.sprite.x >= 1850 && this.direction==='right') ){
+        var turn = true;
+      }else{
+        var turn = (Phaser.Math.Between(0,100)<=this.chace_to_turn) ? true : false;
+      }
 
       if(turn){
         this.direction = (this.direction == 'left') ? 'right' : 'left';
@@ -168,6 +204,7 @@ var Worm = new Phaser.Class({
 
       if(jump){ 
         this.sprite.setVelocityY(jump*-1);
+        horosontal_velocity += (Phaser.Math.Between(70,200) * ( (this.direction=='left') ? -1 : 1 ));
       }
 
       this.sprite.setVelocityX(horosontal_velocity);
@@ -258,3 +295,11 @@ ws_client.onmessage = function (event) {
         }
     }
 }
+
+
+window.addEventListener( 'load', function( event ) {
+  for(var i=0;i<100;i++){
+    worms_cont.push(new Worm(get_worm_level(2),'worm'+i,'#666666'));
+    worms_names['worm'+i] = 1;
+  }
+})
