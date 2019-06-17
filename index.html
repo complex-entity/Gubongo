@@ -18,11 +18,52 @@
         padding: 0;
         overflow: hidden;
       }
+      #victory{
+        position: absolute;
+        top:0; left: 0; bottom: 0; right: 0;
+        background: rgba(0, 0, 0, 0.5);
+        text-align: center;
+        opacity: 0;
+        -moz-transition: opacity 1s linear;
+        -o-transition: opacity 1s linear;
+        -webkit-transition: opacity1s linear;
+        transition: opacity 1s linear;
+      }
+      #victory img{
+        position: relative;
+        top: 100px;
+        margin: 0 auto;
+        display: block;
+      }
+      #victory .winner_label{
+        font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
+        font-size: 50px;
+        color: #ffe804;
+        text-transform: uppercase;
+        position: relative;
+        top: 200px;
+      }
+      #victory .restart{
+        position: absolute;
+        bottom: 20px;
+        left: 20px;
+        color: #ffe804;
+        font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
+        font-size: 18px;
+      }
+      div#victory.fade_in{
+        opacity: 1;
+      }
     </style>
   </head>
   <body>
     <script type="text/javascript" src="node_modules/phaser/dist/phaser.min.js"></script>
     <script type="text/javascript" src="gubongo_v1.js?v=190105"></script>
     <div id="game-container"></div>
+    <div id="victory">
+        <img src="assets/sprites/winer.png" alt="winner">
+        <div class="winner_label">Nagyon szép győzelem!!! <br>#<span id="winner_name"></span></div>
+        <span class="restart">Új kör indul <span>20</span> másodperc múlva...</span>
+    </div>
   </body>
 </html>

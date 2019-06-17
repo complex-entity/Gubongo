@@ -22,6 +22,7 @@ var worms_names = [];
 var update_speed = 12;
 var last_update = 0;
 var coin = null;
+var has_winner = false;
 
 var tyabi = {direction_x:'right',direction_y:'up',sprite:null,min_x:100,max_x:1800,min_y:60,max_y:110};
   
@@ -29,7 +30,7 @@ function preload() {
     this.load.image("tiles", "assets/sprites/spritesheet_64x.png");
     this.load.image("bg", "assets/sprites/background.png");
     this.load.tilemapTiledJSON("map", "assets/tilemap/gubongo_64map.json");
-    this.load.spritesheet('player', 'assets/sprites/kukacok.png',{ frameWidth: 32, frameHeight: 32 });
+    this.load.spritesheet('player', 'assets/sprites/kukacok_v2.png',{ frameWidth: 32, frameHeight: 32 });
     this.load.spritesheet('coin', 'assets/sprites/coin_anim.png',{ frameWidth: 32, frameHeight: 32 });
     this.load.spritesheet('tyabi', 'assets/sprites/tyabi_sp.png',{ frameWidth: 97, frameHeight: 120  });
 }
@@ -61,6 +62,7 @@ function create() {
     
     tyabi.sprite = this.add.sprite(100, 100,'tyabi');
     coin = this.impact.add.sprite(990, 860,'coin');
+    //coin = this.impact.add.sprite(100, 100,'coin');
 
     this.anims.create({
       key: 'coin-flip',
@@ -129,7 +131,7 @@ var Worm = new Phaser.Class({
     this.last_mooved = 0;
     this.move_freq = 1000;
     this.chace_to_turn = 10;
-    this.chace_to_jump = 15;
+    this.chace_to_jump = 20;
 
     this.direction = Phaser.Math.Between(0,1)==1 ? 'left' : 'right';
 
@@ -147,9 +149,9 @@ var Worm = new Phaser.Class({
 
     if(direction=='left'){
       frame1 = frame_by_level;
-      frame2 = frame_by_level + 1;
+      frame2 = frame_by_level + 2;
     }else{
-      frame1 = frame_by_level + 2;
+      frame1 = frame_by_level + 1;
       frame2 = frame_by_level + 3;
     }
 
@@ -174,7 +176,16 @@ var Worm = new Phaser.Class({
         && (this.sprite.y >= (coin.y - 16) && this.sprite.y <= (coin.y + 16))
       )
       {
-        console.log(this);
+        if(has_winner==false)
+        {
+          has_winner = true;
+          document.getElementById('winner_name').innerHTML = this.name;
+          document.getElementById('victory').classList = 'fade_in';
+
+          setTimeout(function(){
+            window.location.reload();
+          },20000)
+        }
       }
   },
 
@@ -259,18 +270,26 @@ function update_tyabi(){
 
 function get_worm_level(level){
 
-  var worm_key = '0';
+  var worm_key = 9;
 
   if(level>=3 && level<6) {
-      worm_key = '1';
-  } else if (level>=6 && level<12){
-      worm_key = '2';
-  } else if (level>=12 && level<24){
-      worm_key = '3';
-  } else if (level>=24 && level<36){
-      worm_key = '4';
-  } else if(level>=36) {
-      worm_key = '5';
+      worm_key = 8;
+  } else if (level>=6 && level<9){
+      worm_key = 7;
+  }  else if (level>=9 && level<12){
+      worm_key = 6;
+  } else if (level>=12 && level<18){
+      worm_key = 5;
+  } else if (level>=18 && level<24){
+      worm_key = 4;
+  } else if (level>=24 && level<30){
+      worm_key = 3;
+  } else if (level>=30 && level<36){
+      worm_key = 2;
+  } else if (level>=36 && level<42){
+      worm_key = 1;
+  } else if(level>=42) {
+      worm_key = 0;
   }
 
   return worm_key;
@@ -296,10 +315,10 @@ ws_client.onmessage = function (event) {
     }
 }
 
-
+/*
 window.addEventListener( 'load', function( event ) {
   for(var i=0;i<100;i++){
     worms_cont.push(new Worm(get_worm_level(2),'worm'+i,'#666666'));
     worms_names['worm'+i] = 1;
   }
-})
+})*/
