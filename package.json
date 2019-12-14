@@ -4,7 +4,7 @@
   "description": "",
   "main": "gubongo.js",
   "dependencies": {
-    "phaser": "^3.16.1"
+    "phaser": "^3.21.0"
   },
   "devDependencies": {},
   "scripts": {
