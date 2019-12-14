@@ -2,6 +2,8 @@
 
 const screen_width = 1920;
 const screen_height = 1080;
+const border_size = 80;
+
 const config: Phaser.Types.Core.GameConfig = {
     type: Phaser.WEBGL,
     width: screen_width,
@@ -17,7 +19,7 @@ const config: Phaser.Types.Core.GameConfig = {
     },
     physics: {
         default: 'impact',
-        impact: { gravity: 400 }
+        impact: { gravity: 800 }
     },
 };
 
@@ -26,7 +28,7 @@ let scene_obj: Phaser.Scene | null = null;
 const worms_container: { [key: string]: Worm } = {}; // store worms indexed by their name
 const update_speed = 12;
 let last_update = 0;
-let coin: Phaser.Physics.Impact.ImpactSprite | null = null;
+let coin: Phaser.GameObjects.Sprite | null = null;
 let has_winner = false;
 
 interface Tyabi {
@@ -49,12 +51,14 @@ const tyabi: Tyabi = {
     frame_index: 0
 };
 
+const coin_size = 32;
+const worm_size = 32;
 function preload(this: Phaser.Scene) {
     this.load.image("tiles", "assets/sprites/spritesheet_64x.png");
     this.load.image("bg", "assets/sprites/background.png");
     this.load.tilemapTiledJSON("map", "assets/tilemap/gubongo_64map.json");
-    this.load.spritesheet('player', 'assets/sprites/kukacok_v2.png', { frameWidth: 32, frameHeight: 32 });
-    this.load.spritesheet('coin', 'assets/sprites/coin_anim.png', { frameWidth: 32, frameHeight: 32 });
+    this.load.spritesheet('player', 'assets/sprites/kukacok_v2.png', { frameWidth: worm_size, frameHeight: worm_size });
+    this.load.spritesheet('coin', 'assets/sprites/coin_anim.png', { frameWidth: coin_size, frameHeight: coin_size });
     this.load.spritesheet('tyabi', 'assets/sprites/tyabi_sp.png', { frameWidth: 97, frameHeight: 120 });
 }
 
@@ -67,25 +71,15 @@ function create(this: Phaser.Scene) {
     const map = this.make.tilemap({ key: "map" });
     const tileset = map.addTilesetImage("spritesheet_64x", "tiles");
 
-    //const sky = map.createStaticLayer("sky", tileset, 0, 0);
-    //const bg = map.createStaticLayer("bg", tileset, 0, 0);
-    const notcollidingitems = map.createStaticLayer("notcollidingitems", tileset, 0, 0);
+    map.createStaticLayer("notcollidingitems", tileset, 0, 0);
     const ground = map.createStaticLayer("ground", tileset, 0, 0);
 
-    //ground.setCollisionBetween(9, 16);
     const slopeMap = { 10: 1, 11: 1, 12: 1, 13: 1, 14: 1, 15: 1, 16: 1, 17: 1, 8: 1, 18: 1 };
     ground.setCollisionByProperty({ collides: true, goal: true });
-    //this.impact.world.setCollisionMapFromTilemapLayer(ground, { }); // slopeProperty: 'slope'
     this.impact.world.setCollisionMapFromTilemapLayer(ground, { slopeMap: slopeMap });
 
-    /*
-    this.impact.world.on('collide', function(event){
-      alert('ok');
-    });*/
-
     tyabi.sprite = this.add.sprite(100, 100, 'tyabi');
-    coin = this.impact.add.sprite(990, 860, 'coin');
-    //coin = this.impact.add.sprite(100, 100,'coin');
+    coin = this.add.sprite(990, 860, 'coin');
 
     this.anims.create({
         key: 'coin-flip',
@@ -116,8 +110,6 @@ function create(this: Phaser.Scene) {
     });
 
     this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
-
-    //cursors = this.input.keyboard.createCursorKeys();
 }
 
 function update(this: Phaser.Scene, time: number, delta: number) {
@@ -150,6 +142,8 @@ class Worm {
     private chance_to_turn: number;
     private chance_to_jump: number;
     private direction: boolean; // left: false, right: true
+    private falling: boolean;
+    private horizontal_velocity: number;
 
     private sprite: Phaser.Physics.Impact.ImpactSprite;
     private label_text: Phaser.GameObjects.Text;
@@ -165,33 +159,35 @@ class Worm {
         this.time_until_next_move = Math.random() * (this.move_freq_max - this.move_freq_min) + this.move_freq_min;
         this.chance_to_turn = 0.1;
         this.chance_to_jump = 0.2;
+        this.falling = true;
+        this.horizontal_velocity = 0;
 
         this.direction = Math.random() < 0.5;
 
-        this.sprite = scene_obj!.impact.add.sprite(tyabi.sprite!.x, tyabi.sprite!.y, 'player');
-        this.sprite.setMaxVelocity(300, 400)
-        this.sprite.setFriction(800, 0);
+        this.sprite = scene_obj!.impact.add.sprite(tyabi.sprite!.x, tyabi.sprite!.y, "player");
+        this.sprite.setMaxVelocity(300, 800);
+        // this.sprite.setFriction(800, 0);
 
-        this.setFrame(this.level, this.direction)
+        this.setFrame(this.direction)
 
         const style = { font: "14px Arial", fill: this.name_color, align: "center" };
         this.label_text = scene_obj!.add.text(tyabi.sprite!.x, tyabi.sprite!.y, " " + name + " ", style);
     }
 
-    setFrame(level: number, direction: boolean) {
-        const frame_by_level = 4 * level;
+    setFrame(direction: boolean) {
+        const frame_by_level = 4 * this.level;
         let frame1, frame2;
 
         if (direction) {
             frame1 = frame_by_level + 1;
             frame2 = frame_by_level + 3;
-        } else {
+        }
+        else {
             frame1 = frame_by_level;
             frame2 = frame_by_level + 2;
         }
 
         this.current_frame = (this.current_frame === frame1) ? frame2 : frame1;
-
         this.sprite.setFrame(this.current_frame);
     }
 
@@ -203,49 +199,75 @@ class Worm {
     }
 
     check_victory() {
-        if ((this.sprite.x >= (coin!.x - 16) && this.sprite.x <= (coin!.x + 16))
-            && (this.sprite.y >= (coin!.y - 16) && this.sprite.y <= (coin!.y + 16))) {
-            if (!has_winner) {
-                has_winner = true;
-                document.getElementById('winner_name')!.textContent = this.name;
-                document.getElementById('victory')!.className = 'fade_in';
+        if (!has_winner &&
+            Math.abs(this.sprite.x - coin!.x) <= (coin_size * 0.5 + worm_size * 0.5) &&
+            Math.abs(this.sprite.y - coin!.y) <= (coin_size * 0.5 + worm_size * 0.5)) {
 
-                setTimeout(function () {
-                    window.location.reload();
-                }, 20000)
-            }
+            has_winner = true;
+            document.getElementById('winner_name')!.textContent = this.name;
+            document.getElementById('victory')!.className = 'fade_in';
+
+            setTimeout(function () {
+                window.location.reload();
+            }, 20000);
         }
     }
 
     move(delta: number) {
         this.check_victory();
 
-        if (this.should_move(delta)) {
+        const velocity = <Phaser.Types.Math.Vector2Like>this.sprite.vel;
+        const was_falling = this.falling;
+        this.falling = velocity.y !== 0;
 
-            const border_size = 80;
-            const jump = random_chance(this.chance_to_jump) ? Phaser.Math.Between(50, 300) : 0;
-
-            let turn;
-            if ((this.sprite.x <= border_size && !this.direction) || (this.sprite.x >= (screen_width - border_size) && this.direction)) {
-                turn = true;
-            } else {
-                turn = random_chance(this.chance_to_turn);
+        if (was_falling != this.falling) {
+            if (was_falling) {
+                // just landed
+                this.sprite.setFrictionX(800);
+                this.sprite.setVelocityX(velocity.x! * 0.6); // slow down when landing
             }
+            else {
+                // just jumped
+                this.sprite.setFrictionX(0);
+            }
+        }
 
+        if (this.falling) {
+            // preserve some of the horizontal velocity if hitting a wall
+            if (velocity.x === 0) {
+                this.horizontal_velocity *= 0.95;
+                this.sprite.setVelocityX(this.horizontal_velocity);
+            }
+        }
+
+        const at_border = (this.sprite.x < border_size && !this.direction) || (this.sprite.x > (screen_width - border_size) && this.direction);
+        if (at_border) {
+            // bounce off the sides
+            this.direction = !this.direction;
+            this.setFrame(this.direction);
+            this.sprite.setVelocityX(-velocity.x! * 0.5);
+        }
+
+        if (this.should_move(delta)) {
+            const turn = random_chance(this.chance_to_turn);
             if (turn) {
                 this.direction = !this.direction;
             }
 
-            let horizontal_velocity = Phaser.Math.Between(150, 300) * (this.direction ? 1 : -1);
+            this.setFrame(this.direction);
 
-            this.setFrame(this.level, this.direction);
-
+            const jump = random_chance(this.chance_to_jump);
             if (jump) {
-                this.sprite.setVelocityY(-jump);
-                horizontal_velocity += (Phaser.Math.Between(70, 200) * (this.direction ? 1 : -1));
-            }
+                const jump_angle = Phaser.Math.Between(30, 60) * Phaser.Math.DEG_TO_RAD;
+                const jump_velocity = Phaser.Math.Between(200, 450);
 
-            this.sprite.setVelocityX(horizontal_velocity);
+                this.horizontal_velocity = jump_velocity * Math.cos(jump_angle) * (this.direction ? 1 : -1);
+                this.sprite.setVelocityX(this.horizontal_velocity);
+                this.sprite.setVelocityY(jump_velocity * -Math.sin(jump_angle));
+            }
+            else {
+                this.sprite.setVelocityX(Phaser.Math.Between(150, 300) * (this.direction ? 1 : -1));
+            }
         }
     }
 
@@ -254,7 +276,9 @@ class Worm {
 
         if (this.time_until_next_move < 0) {
             this.time_until_next_move = Math.random() * (this.move_freq_max - this.move_freq_min) + this.move_freq_min;
-            return true;
+
+            // only move if not jumping or falling
+            return (<Phaser.Types.Math.Vector2Like>this.sprite.vel).y! === 0;
         }
 
         return false;
@@ -276,7 +300,8 @@ function update_tyabi() {
             tyabi.direction_x = !tyabi.direction_x;
             sprite.anims.play("tyabi-turn-left", true);
         }
-    } else if (!tyabi.direction_x) {
+    }
+    else if (!tyabi.direction_x) {
         if (ty_xpos >= tyabi.min_x) {
             // move left
             sprite.x -= 2;
