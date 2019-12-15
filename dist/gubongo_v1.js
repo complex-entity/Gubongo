@@ -2,7 +2,7 @@
 /// <reference path="node_modules/phaser/types/phaser.d.ts" />
 const screen_width = 1920;
 const screen_height = 1080;
-const border_size = 80;
+const border_size = 40;
 const config = {
     type: Phaser.WEBGL,
     width: screen_width,
@@ -42,7 +42,6 @@ const worm_size = 32;
 function preload() {
     this.load.image("tiles", "assets/sprites/spritesheet_64x.png");
     this.load.image("bg", "assets/sprites/background.png");
-    this.load.tilemapTiledJSON("map", "assets/tilemap/gubongo_64map.json");
     this.load.spritesheet('player', 'assets/sprites/kukacok_v2.png', { frameWidth: worm_size, frameHeight: worm_size });
     this.load.spritesheet('coin', 'assets/sprites/coin_anim.png', { frameWidth: coin_size, frameHeight: coin_size });
     this.load.spritesheet('tyabi', 'assets/sprites/tyabi_sp.png', { frameWidth: 97, frameHeight: 120 });
@@ -50,12 +49,312 @@ function preload() {
 function create() {
     scene_obj = this;
     this.add.image(960, 540, 'bg');
+    const wfc = new WFC(30, 17, {
+        "sky": new Set(["sky"]),
+        "grassyEdgeLeftRight": new Set(["sky"]),
+        "grassyLeftRight": new Set(["grassyLeftRight", "dirtLeftRight"]),
+        "dirtEdgeLeftRight": new Set(["sky"]),
+        "dirtLeftRight": new Set(["dirtLeftRight"]),
+        "grassyEdgeTop": new Set(["sky"]),
+        "grassyEdgeBottom": new Set(["sky"]),
+        "dirtTopBottom": new Set(["dirtTopBottom"]),
+        "dirtEdgeBottom": new Set(["sky"])
+    }, [
+        {
+            name: "Sky",
+            edges: ["sky", "sky", "sky", "sky"]
+        },
+        {
+            name: "GrassNoEdge",
+            edges: ["grassyLeftRight", "dirtTopBottom", "grassyLeftRight", "grassyEdgeTop"]
+        },
+        {
+            name: "GrassBottomEdge",
+            edges: ["grassyLeftRight", "grassyEdgeBottom", "grassyLeftRight", "grassyEdgeTop"]
+        },
+        {
+            name: "GrassLeftEdge",
+            edges: ["grassyEdgeLeftRight", "dirtTopBottom", "grassyLeftRight", "grassyEdgeTop"]
+        },
+        {
+            name: "GrassRightEdge",
+            edges: ["grassyLeftRight", "dirtTopBottom", "grassyEdgeLeftRight", "grassyEdgeTop"]
+        },
+        {
+            name: "GrassBottomLeftEdge",
+            edges: ["grassyEdgeLeftRight", "grassyEdgeBottom", "grassyLeftRight", "grassyEdgeTop"]
+        },
+        {
+            name: "GrassBottomRightEdge",
+            edges: ["grassyLeftRight", "grassyEdgeBottom", "grassyEdgeLeftRight", "grassyEdgeTop"]
+        },
+        {
+            name: "GrassLeftRightEdge",
+            edges: ["grassyEdgeLeftRight", "dirtTopBottom", "grassyEdgeLeftRight", "grassyEdgeTop"]
+        },
+        {
+            name: "GrassOnlyEdge",
+            edges: ["grassyEdgeLeftRight", "grassyEdgeBottom", "grassyEdgeLeftRight", "grassyEdgeTop"]
+        },
+        {
+            name: "DirtNoEdge",
+            edges: ["dirtLeftRight", "dirtTopBottom", "dirtLeftRight", "dirtTopBottom"]
+        },
+        {
+            name: "DirtBottomEdge",
+            edges: ["dirtLeftRight", "dirtEdgeBottom", "dirtLeftRight", "dirtTopBottom"]
+        },
+        {
+            name: "DirtLeftEdge",
+            edges: ["dirtEdgeLeftRight", "dirtTopBottom", "dirtLeftRight", "dirtTopBottom"]
+        },
+        {
+            name: "DirtRightEdge",
+            edges: ["dirtLeftRight", "dirtTopBottom", "dirtEdgeLeftRight", "dirtTopBottom"]
+        },
+        {
+            name: "DirtBottomLeftEdge",
+            edges: ["dirtEdgeLeftRight", "dirtEdgeBottom", "dirtLeftRight", "dirtTopBottom"]
+        },
+        {
+            name: "DirtBottomRightEdge",
+            edges: ["dirtLeftRight", "dirtEdgeBottom", "dirtEdgeLeftRight", "dirtTopBottom"]
+        },
+        {
+            name: "DirtLeftRightEdge",
+            edges: ["dirtEdgeLeftRight", "dirtTopBottom", "dirtEdgeLeftRight", "dirtTopBottom"]
+        },
+        {
+            name: "DirtLeftBottomRightEdge",
+            edges: ["dirtEdgeLeftRight", "dirtEdgeBottom", "dirtEdgeLeftRight", "dirtTopBottom"]
+        }
+    ]);
+    // top rows should be empty
+    for (let i = 0; i < 30; ++i) {
+        for (let j = 0; j < 7; ++j) {
+            wfc.SetConstraint(i, j, "Sky");
+        }
+    }
+    // ground should always exist
+    for (let i = 0; i < 30; ++i) {
+        wfc.SetConstraint(i, 16, [
+            "DirtNoEdge", "DirtBottomEdge", "DirtLeftEdge", "DirtRightEdge",
+            "DirtBottomLeftEdge", "DirtBottomRightEdge", "DirtLeftRightEdge", "DirtLeftBottomRightEdge",
+            "GrassNoEdge", "GrassBottomEdge", "GrassLeftEdge", "GrassRightEdge",
+            "GrassBottomLeftEdge", "GrassBottomRightEdge", "GrassLeftRightEdge", "GrassOnlyEdge"
+        ]);
+    }
+    wfc.Run();
+    const wave = wfc.Data;
+    const nameToIndexMap = {
+        "Sky": 0,
+        "DirtNoEdge": 1,
+        "DirtBottomEdge": 2,
+        "DirtLeftEdge": 3,
+        "DirtRightEdge": 4,
+        "DirtBottomLeftEdge": 5,
+        "DirtBottomRightEdge": 6,
+        "DirtLeftRightEdge": 7,
+        "DirtLeftBottomRightEdge": 8,
+        "GrassNoEdge": 11,
+        "GrassBottomEdge": 12,
+        "GrassLeftEdge": 13,
+        "GrassRightEdge": 14,
+        "GrassBottomLeftEdge": 15,
+        "GrassBottomRightEdge": 16,
+        "GrassLeftRightEdge": 17,
+        "GrassOnlyEdge": 18,
+    };
+    const levelData = wave.map(name => nameToIndexMap[name]);
+    game.cache.tilemap.add("map", {
+        format: Phaser.Tilemaps.Formats.TILED_JSON,
+        data: {
+            "height": 17,
+            "infinite": false,
+            "layers": [
+                {
+                    data: levelData,
+                    /* "data": [
+                        9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 19,
+                        9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 19,
+                        9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 19,
+                        9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 19,
+                        9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 19,
+                        9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 19,
+                        9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 19,
+                        11, 11, 11, 11, 11, 11, 11, 0, 0, 0, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 0, 0, 0, 11, 11, 11, 11, 11, 11,
+                        9, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 19,
+                        9, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 19,
+                        9, 0, 0, 5, 0, 11, 11, 11, 11, 11, 11, 11, 0, 5, 0, 0, 0, 5, 0, 0, 0, 11, 11, 11, 11, 11, 11, 11, 11, 11,
+                        9, 0, 0, 5, 0, 0, 0, 0, 5, 0, 0, 0, 0, 5, 0, 0, 0, 5, 0, 0, 0, 0, 0, 1, 0, 0, 0, 5, 0, 19,
+                        9, 0, 0, 5, 0, 0, 0, 0, 5, 0, 0, 0, 11, 11, 11, 11, 11, 11, 11, 0, 0, 0, 0, 1, 0, 0, 0, 5, 0, 19,
+                        9, 0, 0, 5, 0, 0, 0, 0, 5, 0, 0, 0, 0, 5, 0, 0, 0, 5, 0, 0, 0, 0, 0, 1, 0, 0, 0, 5, 0, 19,
+                        9, 0, 0, 5, 0, 0, 0, 0, 5, 0, 0, 0, 0, 5, 0, 16, 0, 5, 0, 0, 0, 0, 0, 1, 0, 0, 0, 5, 0, 19,
+                        9, 0, 0, 5, 0, 0, 0, 0, 5, 0, 0, 0, 0, 5, 16, 1, 16, 5, 0, 0, 0, 0, 0, 1, 0, 0, 0, 5, 0, 19,
+                        11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11
+                    ],*/
+                    "height": 17,
+                    "id": 1,
+                    "name": "ground",
+                    "opacity": 1,
+                    "type": "tilelayer",
+                    "visible": true,
+                    "width": 30,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "data": [
+                        // 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        // 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        // 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        // 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        // 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        // 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        // 22, 32, 23, 0, 0, 25, 0, 0, 0, 0, 23, 0, 0, 0, 22, 32, 23, 0, 0, 0, 0, 0, 0, 0, 0, 32, 0, 0, 32, 22,
+                        // 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        // 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        // 0, 0, 0, 0, 0, 25, 0, 0, 32, 22, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 22, 32, 0, 0, 0, 0, 32, 22, 0,
+                        // 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        // 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 25, 0, 23, 0, 32, 0, 22, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        // 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        // 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        // 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        // 21, 22, 21, 21, 23, 24, 21, 22, 25, 21, 24, 21, 21, 32, 21, 0, 21, 25, 24, 24, 32, 21, 21, 23, 32, 24, 23, 32, 23, 24,
+                        // 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+                    ],
+                    "height": 17,
+                    "id": 2,
+                    "name": "notcollidingitems",
+                    "opacity": 1,
+                    "type": "tilelayer",
+                    "visible": true,
+                    "width": 30,
+                    "x": 0,
+                    "y": 0
+                }
+            ],
+            "nextlayerid": 4,
+            "nextobjectid": 1,
+            "orientation": "orthogonal",
+            "renderorder": "right-down",
+            "tiledversion": "1.2.2",
+            "tileheight": 64,
+            "tilesets": [
+                {
+                    "columns": 10,
+                    "firstgid": 1,
+                    "image": "../sprites/spritesheet_64x.png",
+                    "imageheight": 651,
+                    "imagewidth": 651,
+                    "margin": 1,
+                    "name": "spritesheet_64x",
+                    "spacing": 1,
+                    "tilecount": 100,
+                    "tileheight": 64,
+                    "tiles": [
+                        {
+                            "id": 0,
+                            "properties": [{ "name": "collides", "type": "bool", "value": false }]
+                        },
+                        {
+                            "id": 1,
+                            "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }]
+                        },
+                        {
+                            "id": 2,
+                            "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }]
+                        },
+                        {
+                            "id": 3,
+                            "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }]
+                        },
+                        {
+                            "id": 4,
+                            "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }]
+                        },
+                        {
+                            "id": 5,
+                            "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }]
+                        },
+                        {
+                            "id": 6,
+                            "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }]
+                        },
+                        {
+                            "id": 7,
+                            "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }]
+                        },
+                        {
+                            "id": 8,
+                            "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }]
+                        },
+                        {
+                            "id": 10,
+                            "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }]
+                        },
+                        {
+                            "id": 11,
+                            "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }]
+                        },
+                        {
+                            "id": 12,
+                            "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }]
+                        },
+                        {
+                            "id": 13,
+                            "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }]
+                        },
+                        {
+                            "id": 14,
+                            "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }]
+                        },
+                        {
+                            "id": 15,
+                            "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }]
+                        },
+                        {
+                            "id": 16,
+                            "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }]
+                        },
+                        {
+                            "id": 17,
+                            "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }]
+                        }
+                    ],
+                    "tilewidth": 64,
+                    "transparentcolor": "#5555ff"
+                }
+            ],
+            "tilewidth": 64,
+            "type": "map",
+            "version": 1.2,
+            "width": 30
+        }
+    });
     const map = this.make.tilemap({ key: "map" });
     const tileset = map.addTilesetImage("spritesheet_64x", "tiles");
-    map.createStaticLayer("notcollidingitems", tileset, 0, 0);
     const ground = map.createStaticLayer("ground", tileset, 0, 0);
-    const slopeMap = { 10: 1, 11: 1, 12: 1, 13: 1, 14: 1, 15: 1, 16: 1, 17: 1, 8: 1, 18: 1 };
+    map.createStaticLayer("notcollidingitems", tileset, 0, 0);
     ground.setCollisionByProperty({ collides: true, goal: true });
+    const slopeMap = { 1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 1, 10: 1, 11: 1, 12: 1, 13: 1, 14: 1, 15: 1, 16: 1, 17: 1 };
     this.impact.world.setCollisionMapFromTilemapLayer(ground, { slopeMap: slopeMap });
     tyabi.sprite = this.add.sprite(100, 100, 'tyabi');
     coin = this.add.sprite(990, 860, 'coin');
@@ -107,13 +406,12 @@ class Worm {
         this.move_freq_max = 1200;
         this.time_until_next_move = Math.random() * (this.move_freq_max - this.move_freq_min) + this.move_freq_min;
         this.chance_to_turn = 0.1;
-        this.chance_to_jump = 0.2;
+        this.chance_to_jump = 0.3;
         this.falling = true;
         this.horizontal_velocity = 0;
         this.direction = Math.random() < 0.5;
         this.sprite = scene_obj.impact.add.sprite(tyabi.sprite.x, tyabi.sprite.y, "player");
         this.sprite.setMaxVelocity(300, 800);
-        // this.sprite.setFriction(800, 0);
         this.setFrame(this.direction);
         const style = { font: "14px Arial", fill: this.name_color, align: "center" };
         this.label_text = scene_obj.add.text(tyabi.sprite.x, tyabi.sprite.y, " " + name + " ", style);
@@ -245,6 +543,7 @@ const ws_client = new WebSocket('ws://home.molnarmark.hu:8888');
 ws_client.onmessage = function (event) {
     var _a, _b;
     const ws_data = JSON.parse(event.data);
+    console.log(ws_data);
     if (ws_data.bot_command !== undefined && ws_data.bot_command === "refresh") {
         window.location.reload();
     }
@@ -267,3 +566,4 @@ function spawn_test_worms(count) {
         worms_container[name] = new Worm(get_worm_level(Math.random() * 36 | 0), name, '#666666');
     }
 }
+//# sourceMappingURL=gubongo_v1.js.map

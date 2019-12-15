@@ -17,6 +17,7 @@
             margin: 0;
             padding: 0;
             overflow: hidden;
+            background-color: black;
         }
 
         #victory {
@@ -73,8 +74,9 @@
 
 <body>
     <script type="text/javascript" src="node_modules/phaser/dist/phaser.js"></script>
+    <script type="text/javascript" src="dist/WFC.js"></script>
     <script type="text/javascript" src="dist/gubongo_v1.js?v=191214"></script>
-    <div id="game-container"></div>
+    <div id="game-container" style="/*filter: brightness(0.4);*/"></div>
     <div id="victory">
         <img src="assets/sprites/winer.png" alt="winner">
         <div class="winner_label">Nagyon szép győzelem!!! <br>#<span id="winner_name"></span></div>
