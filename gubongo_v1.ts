@@ -2,7 +2,7 @@
 
 const screen_width = 1920;
 const screen_height = 1080;
-const border_size = 40;
+const border_size = 0;
 
 const config: Phaser.Types.Core.GameConfig = {
     type: Phaser.WEBGL,
@@ -61,322 +61,93 @@ function preload(this: Phaser.Scene) {
     this.load.spritesheet('tyabi', 'assets/sprites/tyabi_sp.png', { frameWidth: 97, frameHeight: 120 });
 }
 
-function create(this: Phaser.Scene) {
-    scene_obj = this;
+const levelData = new Uint8Array(30 * 17);
+const decorations = new Uint8Array(30 * 17);
 
-    this.add.image(960, 540, 'bg');
+const levelJSONData = {
+    "height": 17,
+    "infinite": false,
+    "layers": [
+        { "data": levelData, "height": 17, "id": 1, "name": "ground", "opacity": 1, "type": "tilelayer", "visible": true, "width": 30, "x": 0, "y": 0 },
+        { "data": decorations, "height": 17, "id": 2, "name": "notcollidingitems", "opacity": 1, "type": "tilelayer", "visible": true, "width": 30, "x": 0, "y": 0 }
+    ],
+    "nextlayerid": 4, "nextobjectid": 1, "orientation": "orthogonal", "renderorder": "right-down", "tileheight": 64,
+    "tilesets": [
+        {
+            "columns": 10, "firstgid": 1, "image": "../sprites/spritesheet_64x.png", "imageheight": 651, "imagewidth": 651, "margin": 1,
+            "name": "spritesheet_64x", "spacing": 1, "tilecount": 100, "tileheight": 64,
+            "tiles": [
+                { "id": 0, "properties": [{ "name": "collides", "type": "bool", "value": false }] },
+                { "id": 1, "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }] },
+                { "id": 2, "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }] },
+                { "id": 3, "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }] },
+                { "id": 4, "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }] },
+                { "id": 5, "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }] },
+                { "id": 6, "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }] },
+                { "id": 7, "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }] },
+                { "id": 8, "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }] },
+                { "id": 10, "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }] },
+                { "id": 11, "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }] },
+                { "id": 12, "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }] },
+                { "id": 13, "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }] },
+                { "id": 14, "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }] },
+                { "id": 15, "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }] },
+                { "id": 16, "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }] },
+                { "id": 17, "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }] }
+            ],
+            "tilewidth": 64, "transparentcolor": "#5555ff"
+        }
+    ],
+    "tilewidth": 64, "type": "map", "version": "1.2", "width": 30
+};
 
-    const wfc = new WFC(30, 17, {
-        "sky": new Set(["sky"]),
-        "grassyEdgeLeftRight": new Set(["sky"]),
-        "grassyLeftRight": new Set(["grassyLeftRight", "dirtLeftRight"]),
-        "dirtEdgeLeftRight": new Set(["sky"]),
-        "dirtLeftRight": new Set(["dirtLeftRight"]),
+const decorationIndices: { index: number, weight: number }[] = [
+    { index: 21, weight: 1 },
+    { index: 22, weight: 1 },
+    { index: 23, weight: 1 },
+    { index: 24, weight: 1 },
+    { index: 25, weight: 1 },
+    { index: 31, weight: 0.3 },
+    { index: 32, weight: 0.3 }
+];
+const totalWeight = decorationIndices.map(e => e.weight).reduce((acc, current) => acc + current, 0);
 
-        "grassyEdgeTop": new Set(["sky"]),
-        "grassyEdgeBottom": new Set(["sky"]),
-        "dirtTopBottom": new Set(["dirtTopBottom"]),
-        "dirtEdgeBottom": new Set(["sky"])
-    },
-        [
-            {
-                name: "Sky",
-                edges: ["sky", "sky", "sky", "sky"]
-            },
-            {
-                name: "GrassNoEdge",
-                edges: ["grassyLeftRight", "dirtTopBottom", "grassyLeftRight", "grassyEdgeTop"]
-            },
-            {
-                name: "GrassBottomEdge",
-                edges: ["grassyLeftRight", "grassyEdgeBottom", "grassyLeftRight", "grassyEdgeTop"]
-            },
-            {
-                name: "GrassLeftEdge",
-                edges: ["grassyEdgeLeftRight", "dirtTopBottom", "grassyLeftRight", "grassyEdgeTop"]
-            },
-            {
-                name: "GrassRightEdge",
-                edges: ["grassyLeftRight", "dirtTopBottom", "grassyEdgeLeftRight", "grassyEdgeTop"]
-            },
-            {
-                name: "GrassBottomLeftEdge",
-                edges: ["grassyEdgeLeftRight", "grassyEdgeBottom", "grassyLeftRight", "grassyEdgeTop"]
-            },
-            {
-                name: "GrassBottomRightEdge",
-                edges: ["grassyLeftRight", "grassyEdgeBottom", "grassyEdgeLeftRight", "grassyEdgeTop"]
-            },
-            {
-                name: "GrassLeftRightEdge",
-                edges: ["grassyEdgeLeftRight", "dirtTopBottom", "grassyEdgeLeftRight", "grassyEdgeTop"]
-            },
-            {
-                name: "GrassOnlyEdge",
-                edges: ["grassyEdgeLeftRight", "grassyEdgeBottom", "grassyEdgeLeftRight", "grassyEdgeTop"]
-            },
+let last_map: Phaser.Tilemaps.Tilemap | null = null;
+function generate_new_level(scene: Phaser.Scene) {
 
-            {
-                name: "DirtNoEdge",
-                edges: ["dirtLeftRight", "dirtTopBottom", "dirtLeftRight", "dirtTopBottom"]
-            },
-            {
-                name: "DirtBottomEdge",
-                edges: ["dirtLeftRight", "dirtEdgeBottom", "dirtLeftRight", "dirtTopBottom"]
-            },
-            {
-                name: "DirtLeftEdge",
-                edges: ["dirtEdgeLeftRight", "dirtTopBottom", "dirtLeftRight", "dirtTopBottom"]
-            },
-            {
-                name: "DirtRightEdge",
-                edges: ["dirtLeftRight", "dirtTopBottom", "dirtEdgeLeftRight", "dirtTopBottom"]
-            },
-            {
-                name: "DirtBottomLeftEdge",
-                edges: ["dirtEdgeLeftRight", "dirtEdgeBottom", "dirtLeftRight", "dirtTopBottom"]
-            },
-            {
-                name: "DirtBottomRightEdge",
-                edges: ["dirtLeftRight", "dirtEdgeBottom", "dirtEdgeLeftRight", "dirtTopBottom"]
-            },
-            {
-                name: "DirtLeftRightEdge",
-                edges: ["dirtEdgeLeftRight", "dirtTopBottom", "dirtEdgeLeftRight", "dirtTopBottom"]
-            },
-            {
-                name: "DirtLeftBottomRightEdge",
-                edges: ["dirtEdgeLeftRight", "dirtEdgeBottom", "dirtEdgeLeftRight", "dirtTopBottom"]
+    for (let worm_name in worms_container) {
+        const worm = worms_container[worm_name];
+        worm.destroy();
+        delete worms_container[worm_name];
+    }
+
+    const mapGenerator = new MapGenerator(30, 17);
+    mapGenerator.generate(7, true);
+    levelData.set(mapGenerator.Data.map(tile => tile ? 11 : 0));
+    decorations.set(mapGenerator.GroundMap.map(isGround => {
+        if (isGround && Math.random() < 0.5) {
+            let currentWeight = Math.random() * totalWeight;
+            for (let i = 0; i < decorationIndices.length; ++i) {
+                currentWeight -= decorationIndices[i].weight;
+
+                if (currentWeight < 0) {
+                    return decorationIndices[i].index;
+                }
             }
-        ]);
-
-    // top rows should be empty
-    for (let i = 0; i < 30; ++i) {
-        for (let j = 0; j < 7; ++j) {
-            wfc.SetConstraint(i, j, "Sky");
         }
+
+        return 0;
+    }));
+
+    decorations[mapGenerator.coin.y * mapGenerator.width + mapGenerator.coin.x] = 0;
+
+    if (last_map) {
+        last_map.destroy();
     }
 
-    // ground should always exist
-    for (let i = 0; i < 30; ++i) {
-        wfc.SetConstraint(i, 16, [
-            "DirtNoEdge", "DirtBottomEdge", "DirtLeftEdge", "DirtRightEdge",
-            "DirtBottomLeftEdge", "DirtBottomRightEdge", "DirtLeftRightEdge", "DirtLeftBottomRightEdge",
-            "GrassNoEdge", "GrassBottomEdge", "GrassLeftEdge", "GrassRightEdge",
-            "GrassBottomLeftEdge", "GrassBottomRightEdge", "GrassLeftRightEdge", "GrassOnlyEdge"
-        ]);
-    }
+    const map = scene.make.tilemap({ key: "map" });
+    last_map = map;
 
-    wfc.Run();
-    const wave: string[] = wfc.Data;
-
-    const nameToIndexMap: { [key: string]: number } = {
-        "Sky": 0,
-        "DirtNoEdge": 1,
-        "DirtBottomEdge": 2,
-        "DirtLeftEdge": 3,
-        "DirtRightEdge": 4,
-        "DirtBottomLeftEdge": 5,
-        "DirtBottomRightEdge": 6,
-        "DirtLeftRightEdge": 7,
-        "DirtLeftBottomRightEdge": 8,
-        "GrassNoEdge": 11,
-        "GrassBottomEdge": 12,
-        "GrassLeftEdge": 13,
-        "GrassRightEdge": 14,
-        "GrassBottomLeftEdge": 15,
-        "GrassBottomRightEdge": 16,
-        "GrassLeftRightEdge": 17,
-        "GrassOnlyEdge": 18,
-    };
-
-    const levelData = wave.map(name => nameToIndexMap[name]);
-
-    game.cache.tilemap.add("map", {
-        format: Phaser.Tilemaps.Formats.TILED_JSON,
-        data: {
-            "height": 17,
-            "infinite": false,
-            "layers": [
-                {
-                    data: levelData,
-                    /* "data": [
-                        9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 19,
-                        9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 19,
-                        9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 19,
-                        9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 19,
-                        9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 19,
-                        9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 19,
-                        9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 19,
-                        11, 11, 11, 11, 11, 11, 11, 0, 0, 0, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 0, 0, 0, 11, 11, 11, 11, 11, 11,
-                        9, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 19,
-                        9, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 19,
-                        9, 0, 0, 5, 0, 11, 11, 11, 11, 11, 11, 11, 0, 5, 0, 0, 0, 5, 0, 0, 0, 11, 11, 11, 11, 11, 11, 11, 11, 11,
-                        9, 0, 0, 5, 0, 0, 0, 0, 5, 0, 0, 0, 0, 5, 0, 0, 0, 5, 0, 0, 0, 0, 0, 1, 0, 0, 0, 5, 0, 19,
-                        9, 0, 0, 5, 0, 0, 0, 0, 5, 0, 0, 0, 11, 11, 11, 11, 11, 11, 11, 0, 0, 0, 0, 1, 0, 0, 0, 5, 0, 19,
-                        9, 0, 0, 5, 0, 0, 0, 0, 5, 0, 0, 0, 0, 5, 0, 0, 0, 5, 0, 0, 0, 0, 0, 1, 0, 0, 0, 5, 0, 19,
-                        9, 0, 0, 5, 0, 0, 0, 0, 5, 0, 0, 0, 0, 5, 0, 16, 0, 5, 0, 0, 0, 0, 0, 1, 0, 0, 0, 5, 0, 19,
-                        9, 0, 0, 5, 0, 0, 0, 0, 5, 0, 0, 0, 0, 5, 16, 1, 16, 5, 0, 0, 0, 0, 0, 1, 0, 0, 0, 5, 0, 19,
-                        11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11
-                    ],*/
-                    "height": 17,
-                    "id": 1,
-                    "name": "ground",
-                    "opacity": 1,
-                    "type": "tilelayer",
-                    "visible": true,
-                    "width": 30,
-                    "x": 0,
-                    "y": 0
-                },
-                {
-                    "data": [
-                        // 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                        // 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                        // 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                        // 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                        // 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                        // 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                        // 22, 32, 23, 0, 0, 25, 0, 0, 0, 0, 23, 0, 0, 0, 22, 32, 23, 0, 0, 0, 0, 0, 0, 0, 0, 32, 0, 0, 32, 22,
-                        // 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                        // 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                        // 0, 0, 0, 0, 0, 25, 0, 0, 32, 22, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 22, 32, 0, 0, 0, 0, 32, 22, 0,
-                        // 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                        // 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 25, 0, 23, 0, 32, 0, 22, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                        // 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                        // 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                        // 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                        // 21, 22, 21, 21, 23, 24, 21, 22, 25, 21, 24, 21, 21, 32, 21, 0, 21, 25, 24, 24, 32, 21, 21, 23, 32, 24, 23, 32, 23, 24,
-                        // 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-                    ],
-                    "height": 17,
-                    "id": 2,
-                    "name": "notcollidingitems",
-                    "opacity": 1,
-                    "type": "tilelayer",
-                    "visible": true,
-                    "width": 30,
-                    "x": 0,
-                    "y": 0
-                }
-            ],
-            "nextlayerid": 4,
-            "nextobjectid": 1,
-            "orientation": "orthogonal",
-            "renderorder": "right-down",
-            "tiledversion": "1.2.2",
-            "tileheight": 64,
-            "tilesets": [
-                {
-                    "columns": 10,
-                    "firstgid": 1,
-                    "image": "../sprites/spritesheet_64x.png",
-                    "imageheight": 651,
-                    "imagewidth": 651,
-                    "margin": 1,
-                    "name": "spritesheet_64x",
-                    "spacing": 1,
-                    "tilecount": 100,
-                    "tileheight": 64,
-                    "tiles": [
-                        {
-                            "id": 0,
-                            "properties": [{ "name": "collides", "type": "bool", "value": false }]
-                        },
-                        {
-                            "id": 1,
-                            "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }]
-                        },
-                        {
-                            "id": 2,
-                            "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }]
-                        },
-                        {
-                            "id": 3,
-                            "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }]
-                        },
-                        {
-                            "id": 4,
-                            "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }]
-                        },
-                        {
-                            "id": 5,
-                            "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }]
-                        },
-                        {
-                            "id": 6,
-                            "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }]
-                        },
-                        {
-                            "id": 7,
-                            "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }]
-                        },
-                        {
-                            "id": 8,
-                            "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }]
-                        },
-                        {
-                            "id": 10,
-                            "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }]
-                        },
-                        {
-                            "id": 11,
-                            "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }]
-                        },
-                        {
-                            "id": 12,
-                            "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }]
-                        },
-                        {
-                            "id": 13,
-                            "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }]
-                        },
-                        {
-                            "id": 14,
-                            "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }]
-                        },
-                        {
-                            "id": 15,
-                            "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }]
-                        },
-                        {
-                            "id": 16,
-                            "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }]
-                        },
-                        {
-                            "id": 17,
-                            "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }]
-                        }
-                    ],
-                    "tilewidth": 64,
-                    "transparentcolor": "#5555ff"
-                }
-            ],
-            "tilewidth": 64,
-            "type": "map",
-            "version": 1.2,
-            "width": 30
-        }
-    });
-
-    const map = this.make.tilemap({ key: "map" });
     const tileset = map.addTilesetImage("spritesheet_64x", "tiles");
 
     const ground = map.createStaticLayer("ground", tileset, 0, 0);
@@ -384,10 +155,25 @@ function create(this: Phaser.Scene) {
 
     ground.setCollisionByProperty({ collides: true, goal: true });
     const slopeMap = { 1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 1, 10: 1, 11: 1, 12: 1, 13: 1, 14: 1, 15: 1, 16: 1, 17: 1 };
-    this.impact.world.setCollisionMapFromTilemapLayer(ground, { slopeMap: slopeMap });
+    scene.impact.world.setCollisionMapFromTilemapLayer(ground, { slopeMap: slopeMap });
+
+    coin!.setPosition(mapGenerator.coin.x * 64 + coin_size, mapGenerator.coin.y * 64 + coin_size);
+}
+
+function create(this: Phaser.Scene) {
+    scene_obj = this;
+
+    this.add.image(960, 540, 'bg');
 
     tyabi.sprite = this.add.sprite(100, 100, 'tyabi');
-    coin = this.add.sprite(990, 860, 'coin');
+    coin = this.add.sprite(-100, -100, 'coin');
+
+    game.cache.tilemap.add("map", {
+        format: Phaser.Tilemaps.Formats.TILED_JSON,
+        data: levelJSONData
+    });
+
+    generate_new_level(this);
 
     this.anims.create({
         key: 'coin-flip',
@@ -416,8 +202,6 @@ function create(this: Phaser.Scene) {
         frameRate: 1,
         repeat: -1
     });
-
-    this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
 }
 
 function update(this: Phaser.Scene, time: number, delta: number) {
@@ -477,8 +261,13 @@ class Worm {
 
         this.setFrame(this.direction)
 
-        const style = { font: "14px Arial", fill: this.name_color, align: "center" };
+        const style = { font: "bold 14px Arial", fill: this.name_color, align: "center" };
         this.label_text = scene_obj!.add.text(tyabi.sprite!.x, tyabi.sprite!.y, " " + name + " ", style);
+    }
+
+    destroy() {
+        this.sprite.destroy();
+        this.label_text.destroy();
     }
 
     setFrame(direction: boolean) {
@@ -515,7 +304,9 @@ class Worm {
             document.getElementById('victory')!.className = 'fade_in';
 
             setTimeout(function () {
-                window.location.reload();
+                document.getElementById('victory')!.className = '';
+                generate_new_level(scene_obj!);
+                has_winner = false;
             }, 20000);
         }
     }
@@ -547,16 +338,24 @@ class Worm {
             }
         }
 
-        const at_border = (this.sprite.x < border_size && !this.direction) || (this.sprite.x > (screen_width - border_size) && this.direction);
+        const minX = border_size + worm_size * 0.5;
+        const maxX = screen_width - border_size - worm_size * 0.5;
+        const at_border = (this.sprite.x < minX) || (this.sprite.x > maxX);
         if (at_border) {
             // bounce off the sides
-            this.direction = !this.direction;
+            if (this.sprite.x < minX) {
+                this.direction = true;
+            }
+            else {
+                this.direction = false;
+            }
+
             this.setFrame(this.direction);
             this.sprite.setVelocityX(-velocity.x! * 0.5);
         }
 
         if (this.should_move(delta)) {
-            const turn = random_chance(this.chance_to_turn);
+            const turn = !at_border && random_chance(this.chance_to_turn);
             if (turn) {
                 this.direction = !this.direction;
             }
@@ -565,8 +364,8 @@ class Worm {
 
             const jump = random_chance(this.chance_to_jump);
             if (jump) {
-                const jump_angle = Phaser.Math.Between(30, 60) * Phaser.Math.DEG_TO_RAD;
-                const jump_velocity = Phaser.Math.Between(200, 450);
+                const jump_angle = Phaser.Math.Between(40, 70) * Phaser.Math.DEG_TO_RAD;
+                const jump_velocity = Phaser.Math.Between(250, 450);
 
                 this.horizontal_velocity = jump_velocity * Math.cos(jump_angle) * (this.direction ? 1 : -1);
                 this.sprite.setVelocityX(this.horizontal_velocity);
@@ -658,7 +457,6 @@ const ws_client = new WebSocket('ws://home.molnarmark.hu:8888');
 ws_client.onmessage = function (event) {
 
     const ws_data: WSEventData = JSON.parse(event.data);
-    console.log(ws_data);
 
     if (ws_data.bot_command !== undefined && ws_data.bot_command === "refresh") {
         window.location.reload();
