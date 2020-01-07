@@ -45,7 +45,32 @@ class MapGenerator {
                 this.map[this.XYToIndex(i, j)] = (rand() < 0.5) ? 1 : 0;
             }
         }
-        this.makeReachable();
+        const coinX = (rand() * (this.width - 8) | 0) + 4;
+        const coinY = this.height - 4 - (rand() * 2 | 0);
+        this.coin = { x: coinX, y: coinY };
+        this.makeReachable(false);
+        if (true) {
+            for (let i = 0; i < this.width; ++i) {
+                for (let j = topEmptyRows; j < targetY - 1; ++j) {
+                    // add dirt to specific patterns
+                    const bottomLeftAir = !this.isAir(i, j) && !this.isAir(i + 1, j + 1) && this.isAir(i, j + 1);
+                    const bottomRightAir = !this.isAir(i + 1, j) && !this.isAir(i, j + 1) && this.isAir(i + 1, j + 1);
+                    if (bottomLeftAir || bottomRightAir) {
+                        const bottom4air = this.isAir(i, j + 2) && this.isAir(i + 1, j + 2) && this.isAir(i, j + 3) && this.isAir(i + 1, j + 3);
+                        const bottom2air = this.isAir(i, j + 2) && this.isAir(i + 1, j + 2);
+                        if (bottom2air) {
+                            if (bottomLeftAir) {
+                                this.map[this.XYToIndex(i, j + 1)] = 1;
+                            }
+                            else if (bottomRightAir) {
+                                this.map[this.XYToIndex(i + 1, j + 1)] = 1;
+                            }
+                        }
+                    }
+                }
+            }
+            this.makeReachable(true); // again
+        }
     }
     get Data() {
         return this.map;
@@ -71,10 +96,8 @@ class MapGenerator {
     isAir(x, y) {
         return this.mapBoundsCheckX(x) && this.mapBoundsCheckY(y) && this.map[this.XYToIndex(x, y)] === 0;
     }
-    makeReachable() {
-        const coinX = (rand() * (this.width - 8) | 0) + 4;
-        const coinY = this.height - 4 - (rand() * 2 | 0);
-        this.coin = { x: coinX, y: coinY };
+    makeReachable(greedy) {
+        const { x: coinX, y: coinY } = this.coin;
         // set map around the coin
         this.map[this.XYToIndex(coinX - 1, coinY)] = 0;
         this.map[this.XYToIndex(coinX + 1, coinY)] = 0;
@@ -131,7 +154,9 @@ class MapGenerator {
                 }
             }
         };
-        floodFillRecalculate();
+        if (greedy) {
+            floodFillRecalculate();
+        }
         const possibleTilesToAddOrRemoveToMakeTheMapMoreReachable = [];
         const markPossiblyReachable = (x, y, isAdd, weight) => {
             if (x === coinX) {
@@ -147,8 +172,8 @@ class MapGenerator {
                 possibleTilesToAddOrRemoveToMakeTheMapMoreReachable.push({ index: idx, isAdd: isAdd, weight: weight });
             }
         };
-        let breaker = 0;
-        while (breaker++ < 1000) {
+        let iterations = 0;
+        while (iterations < 1000) {
             while (tilesToCheck.length !== 0) {
                 const current = tilesToCheck.pop();
                 if (checked[current]) {
@@ -227,6 +252,20 @@ class MapGenerator {
             }
             // all tiles checked, check if the entire map is reachable
             // if not, then we add/remove some tiles
+            if (greedy) {
+                // check if it was already reachable
+                floodFillRecalculate();
+                let allReachable = true;
+                for (let i = 0; i < targetReachableMap.length; ++i) {
+                    if (targetReachableMap[i] !== this.reachableMap[i]) {
+                        allReachable = false;
+                        break;
+                    }
+                }
+                if (allReachable) {
+                    break;
+                }
+            }
             const stillOkTilesToRemove = [];
             for (let tile of possibleTilesToAddOrRemoveToMakeTheMapMoreReachable) {
                 let reachable = false;
@@ -265,11 +304,20 @@ class MapGenerator {
                 }
             }
             possibleTilesToAddOrRemoveToMakeTheMapMoreReachable.length = 0;
-            floodFillRecalculate();
             tilesToCheck.push(this.XYToIndex(coinX, coinY));
+            if (greedy) {
+                floodFillRecalculate();
+            }
             checked.fill(0);
             this.reachableMap.fill(0);
+            ++iterations;
         }
-        console.log("Map generation completed after " + breaker + " iterations");
+        // fill non-reachable tiles with dirt
+        for (let i = 0, c = this.width * this.height; i < c; ++i) {
+            if (this.reachableMap[i] === 0) {
+                this.map[i] = 1;
+            }
+        }
+        console.log("Map generation completed after " + iterations + " iterations");
     }
 }

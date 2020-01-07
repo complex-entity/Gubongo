@@ -204,6 +204,9 @@ function create(this: Phaser.Scene) {
     });
 }
 
+const restart_countdown_text = <HTMLSpanElement>document.getElementById("restart_countdown");
+const restart_countdown_time = 20 * 1000;
+let restart_countdown_current_timer = restart_countdown_time;
 function update(this: Phaser.Scene, time: number, delta: number) {
 
     update_tyabi();
@@ -215,6 +218,24 @@ function update(this: Phaser.Scene, time: number, delta: number) {
 
         last_update = time;
     }
+
+    if (has_winner)
+    {
+        restart_countdown_current_timer -= delta;
+        restart_countdown_text.textContent = Math.ceil(restart_countdown_current_timer / 1000).toString();
+        if (restart_countdown_current_timer < 0)
+        {
+            restart();
+        }
+    }
+}
+
+function restart()
+{
+    document.getElementById('victory')!.className = '';
+    generate_new_level(scene_obj!);
+    has_winner = false;
+    restart_countdown_current_timer = restart_countdown_time;
 }
 
 // chance: [0, 1] 
@@ -302,12 +323,6 @@ class Worm {
             has_winner = true;
             document.getElementById('winner_name')!.textContent = this.name;
             document.getElementById('victory')!.className = 'fade_in';
-
-            setTimeout(function () {
-                document.getElementById('victory')!.className = '';
-                generate_new_level(scene_obj!);
-                has_winner = false;
-            }, 20000);
         }
     }
 
@@ -484,3 +499,9 @@ function spawn_test_worms(count: number) {
         worms_container[name] = new Worm(get_worm_level(Math.random() * 36 | 0), name, '#666666');
     }
 }
+
+window.addEventListener("keydown", ev =>
+{
+    if (ev.key === "s")
+        spawn_test_worms(20);
+});

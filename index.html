@@ -73,15 +73,16 @@
 </head>
 
 <body>
-    <script type="text/javascript" src="node_modules/phaser/dist/phaser.js"></script>
-    <script type="text/javascript" src="dist/mapgenerator.js"></script>
-    <script type="text/javascript" src="dist/gubongo_v1.js?v=191214"></script>
     <div id="game-container"></div>
     <div id="victory">
         <img src="assets/sprites/winer.png" alt="winner">
         <div class="winner_label">Nagyon szép győzelem!!! <br>#<span id="winner_name"></span></div>
-        <span class="restart">Új kör indul <span>20</span> másodperc múlva...</span>
+        <span class="restart">Új kör indul <span id="restart_countdown">20</span> másodperc múlva...</span>
     </div>
+
+    <script type="text/javascript" src="node_modules/phaser/dist/phaser.js"></script>
+    <script type="text/javascript" src="dist/mapgenerator.js"></script>
+    <script type="text/javascript" src="dist/gubongo_v1.js?v=191214"></script>
 </body>
 
 </html>
