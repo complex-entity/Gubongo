@@ -65,36 +65,30 @@ class MapGenerator {
         const coinY = this.height - 4 - (rand() * 2 | 0);
         this.coin = { x: coinX, y: coinY };
 
-        this.makeReachable(false);
+        // if we use greedy method for the first check, then we'll get maps with more dirt
+        this.makeReachable(Math.random() < 0.25);
 
-        if (true)
-        {
-            for (let i = 0; i < this.width; ++i) {
-                for (let j = topEmptyRows; j < targetY - 1; ++j) {
-                    // add dirt to specific patterns
-                    const bottomLeftAir = !this.isAir(i, j) && !this.isAir(i + 1, j + 1) && this.isAir(i, j + 1);
-                    const bottomRightAir = !this.isAir(i + 1, j) && !this.isAir(i, j + 1) && this.isAir(i + 1, j + 1);
-                    if (bottomLeftAir || bottomRightAir)
-                    {
-                        const bottom4air = this.isAir(i, j + 2) && this.isAir(i + 1, j + 2) && this.isAir(i, j + 3) && this.isAir(i + 1, j + 3);
-                        const bottom2air = this.isAir(i, j + 2) && this.isAir(i + 1, j + 2);
-                        if (bottom2air)
-                        {
-                            if (bottomLeftAir)
-                            {
-                                this.map[this.XYToIndex(i, j + 1)] = 1;
-                            }
-                            else if (bottomRightAir)
-                            {
-                                this.map[this.XYToIndex(i + 1, j + 1)] = 1;
-                            }
+        for (let i = 0; i < this.width; ++i) {
+            for (let j = topEmptyRows; j < targetY - 1; ++j) {
+                // add dirt to specific patterns
+                const bottomLeftAir = !this.isAir(i, j) && !this.isAir(i + 1, j + 1) && this.isAir(i, j + 1);
+                const bottomRightAir = !this.isAir(i + 1, j) && !this.isAir(i, j + 1) && this.isAir(i + 1, j + 1);
+                if (bottomLeftAir || bottomRightAir) {
+                    //const bottom4air = this.isAir(i, j + 2) && this.isAir(i + 1, j + 2) && this.isAir(i, j + 3) && this.isAir(i + 1, j + 3);
+                    const bottom2air = this.isAir(i, j + 2) && this.isAir(i + 1, j + 2);
+                    if (bottom2air) {
+                        if (bottomLeftAir) {
+                            this.map[this.XYToIndex(i, j + 1)] = 1;
+                        }
+                        else if (bottomRightAir) {
+                            this.map[this.XYToIndex(i + 1, j + 1)] = 1;
                         }
                     }
                 }
             }
-
-            this.makeReachable(true); // again
         }
+
+        this.makeReachable(true); // again
     }
 
     get Data() {
@@ -202,8 +196,7 @@ class MapGenerator {
             }
         };
 
-        if (greedy)
-        {
+        if (greedy) {
             floodFillRecalculate();
         }
 
@@ -313,23 +306,19 @@ class MapGenerator {
             // all tiles checked, check if the entire map is reachable
             // if not, then we add/remove some tiles
 
-            if (greedy)
-            {
-                // check if it was already reachable
+            if (greedy) {
+                // if the map is already reachable, then we finish early
                 floodFillRecalculate();
 
                 let allReachable = true;
-                for (let i = 0; i < targetReachableMap.length; ++i)
-                {
-                    if (targetReachableMap[i] !== this.reachableMap[i])
-                    {
+                for (let i = 0; i < targetReachableMap.length; ++i) {
+                    if (targetReachableMap[i] !== this.reachableMap[i]) {
                         allReachable = false;
                         break;
                     }
                 }
 
-                if (allReachable)
-                {
+                if (allReachable) {
                     break;
                 }
             }
@@ -379,8 +368,7 @@ class MapGenerator {
             possibleTilesToAddOrRemoveToMakeTheMapMoreReachable.length = 0;
             tilesToCheck.push(this.XYToIndex(coinX, coinY));
 
-            if (greedy)
-            {
+            if (greedy) {
                 floodFillRecalculate();
             }
 
@@ -390,10 +378,8 @@ class MapGenerator {
         }
 
         // fill non-reachable tiles with dirt
-        for (let i = 0, c = this.width * this.height; i < c; ++i)
-        {
-            if (this.reachableMap[i] === 0)
-            {
+        for (let i = 0, c = this.width * this.height; i < c; ++i) {
+            if (this.reachableMap[i] === 0) {
                 this.map[i] = 1;
             }
         }

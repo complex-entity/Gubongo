@@ -77,7 +77,7 @@ const levelJSONData = {
             "columns": 10, "firstgid": 1, "image": "../sprites/spritesheet_64x.png", "imageheight": 651, "imagewidth": 651, "margin": 1,
             "name": "spritesheet_64x", "spacing": 1, "tilecount": 100, "tileheight": 64,
             "tiles": [
-                { "id": 0, "properties": [{ "name": "collides", "type": "bool", "value": false }] },
+                { "id": 0, "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }] },
                 { "id": 1, "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }] },
                 { "id": 2, "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }] },
                 { "id": 3, "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }] },
@@ -85,7 +85,6 @@ const levelJSONData = {
                 { "id": 5, "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }] },
                 { "id": 6, "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }] },
                 { "id": 7, "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }] },
-                { "id": 8, "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }] },
                 { "id": 10, "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }] },
                 { "id": 11, "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }] },
                 { "id": 12, "properties": [{ "name": "collides", "type": "bool", "value": true }, { "name": "slope", "type": "int", "value": 1 }] },
@@ -112,6 +111,9 @@ const decorationIndices: { index: number, weight: number }[] = [
 ];
 const totalWeight = decorationIndices.map(e => e.weight).reduce((acc, current) => acc + current, 0);
 
+// bottom = 0x1, left = 0x2, right = 0x4
+const spriteMaskToIndex = [0, 1, 2, 4, 3, 5, 6, 7];
+
 let last_map: Phaser.Tilemaps.Tilemap | null = null;
 function generate_new_level(scene: Phaser.Scene) {
 
@@ -123,7 +125,37 @@ function generate_new_level(scene: Phaser.Scene) {
 
     const mapGenerator = new MapGenerator(30, 17);
     mapGenerator.generate(7, true);
-    levelData.set(mapGenerator.Data.map(tile => tile ? 11 : 0));
+    const mapData = mapGenerator.Data;
+
+    const mapWidth = 30;
+    const mapHeight = 17;
+
+    const mapBoundsCheck = (x: number, y: number) => x >= 0 && x < mapWidth && y >= 0 && y < mapHeight;
+    const isAir = (x: number, y: number) => mapBoundsCheck(x, y) && mapData[xyToIndex(x, y)] === 0;
+    const xyToIndex = (x: number, y: number) => y * mapWidth + x;
+
+    for (let i = 0; i < mapData.length; ++i) {
+        const x = i % mapWidth;
+        const y = i / mapWidth | 0;
+
+        const hasTile = mapData[i] !== 0;
+
+        if (hasTile) {
+            // if air above then grassy
+            let grassy = isAir(x, y - 1);
+
+            const bottom = isAir(x, y + 1);
+            const left = isAir(x - 1, y);
+            const right = isAir(x + 1, y);
+            const mask = (bottom ? 1 : 0) | (left ? 2 : 0) | (right ? 4 : 0);
+
+            levelData[i] = 1 + spriteMaskToIndex[mask] + (grassy ? 10 : 0);
+        }
+        else {
+            levelData[i] = 0;
+        }
+    }
+
     decorations.set(mapGenerator.GroundMap.map(isGround => {
         if (isGround && Math.random() < 0.5) {
             let currentWeight = Math.random() * totalWeight;
@@ -219,19 +251,16 @@ function update(this: Phaser.Scene, time: number, delta: number) {
         last_update = time;
     }
 
-    if (has_winner)
-    {
+    if (has_winner) {
         restart_countdown_current_timer -= delta;
         restart_countdown_text.textContent = Math.ceil(restart_countdown_current_timer / 1000).toString();
-        if (restart_countdown_current_timer < 0)
-        {
+        if (restart_countdown_current_timer < 0) {
             restart();
         }
     }
 }
 
-function restart()
-{
+function restart() {
     document.getElementById('victory')!.className = '';
     generate_new_level(scene_obj!);
     has_winner = false;
@@ -275,10 +304,12 @@ class Worm {
         this.falling = true;
         this.horizontal_velocity = 0;
 
-        this.direction = Math.random() < 0.5;
-
         this.sprite = scene_obj!.impact.add.sprite(tyabi.sprite!.x, tyabi.sprite!.y, "player");
         this.sprite.setMaxVelocity(300, 800);
+
+        const startVelocityX = Phaser.Math.Between(-100, 100);
+        this.sprite.setVelocityX(startVelocityX);
+        this.direction = startVelocityX > 0;
 
         this.setFrame(this.direction)
 
@@ -500,8 +531,9 @@ function spawn_test_worms(count: number) {
     }
 }
 
-window.addEventListener("keydown", ev =>
-{
-    if (ev.key === "s")
-        spawn_test_worms(20);
-});
+if (location.protocol === "file:" || location.hostname === "localhost") {
+    window.addEventListener("keydown", ev => {
+        if (ev.key === "s")
+            spawn_test_worms(20);
+    });
+}

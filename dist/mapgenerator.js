@@ -48,29 +48,28 @@ class MapGenerator {
         const coinX = (rand() * (this.width - 8) | 0) + 4;
         const coinY = this.height - 4 - (rand() * 2 | 0);
         this.coin = { x: coinX, y: coinY };
-        this.makeReachable(false);
-        if (true) {
-            for (let i = 0; i < this.width; ++i) {
-                for (let j = topEmptyRows; j < targetY - 1; ++j) {
-                    // add dirt to specific patterns
-                    const bottomLeftAir = !this.isAir(i, j) && !this.isAir(i + 1, j + 1) && this.isAir(i, j + 1);
-                    const bottomRightAir = !this.isAir(i + 1, j) && !this.isAir(i, j + 1) && this.isAir(i + 1, j + 1);
-                    if (bottomLeftAir || bottomRightAir) {
-                        const bottom4air = this.isAir(i, j + 2) && this.isAir(i + 1, j + 2) && this.isAir(i, j + 3) && this.isAir(i + 1, j + 3);
-                        const bottom2air = this.isAir(i, j + 2) && this.isAir(i + 1, j + 2);
-                        if (bottom2air) {
-                            if (bottomLeftAir) {
-                                this.map[this.XYToIndex(i, j + 1)] = 1;
-                            }
-                            else if (bottomRightAir) {
-                                this.map[this.XYToIndex(i + 1, j + 1)] = 1;
-                            }
+        // if we use greedy method for the first check, then we'll get maps with more dirt
+        this.makeReachable(Math.random() < 0.25);
+        for (let i = 0; i < this.width; ++i) {
+            for (let j = topEmptyRows; j < targetY - 1; ++j) {
+                // add dirt to specific patterns
+                const bottomLeftAir = !this.isAir(i, j) && !this.isAir(i + 1, j + 1) && this.isAir(i, j + 1);
+                const bottomRightAir = !this.isAir(i + 1, j) && !this.isAir(i, j + 1) && this.isAir(i + 1, j + 1);
+                if (bottomLeftAir || bottomRightAir) {
+                    //const bottom4air = this.isAir(i, j + 2) && this.isAir(i + 1, j + 2) && this.isAir(i, j + 3) && this.isAir(i + 1, j + 3);
+                    const bottom2air = this.isAir(i, j + 2) && this.isAir(i + 1, j + 2);
+                    if (bottom2air) {
+                        if (bottomLeftAir) {
+                            this.map[this.XYToIndex(i, j + 1)] = 1;
+                        }
+                        else if (bottomRightAir) {
+                            this.map[this.XYToIndex(i + 1, j + 1)] = 1;
                         }
                     }
                 }
             }
-            this.makeReachable(true); // again
         }
+        this.makeReachable(true); // again
     }
     get Data() {
         return this.map;
@@ -253,7 +252,7 @@ class MapGenerator {
             // all tiles checked, check if the entire map is reachable
             // if not, then we add/remove some tiles
             if (greedy) {
-                // check if it was already reachable
+                // if the map is already reachable, then we finish early
                 floodFillRecalculate();
                 let allReachable = true;
                 for (let i = 0; i < targetReachableMap.length; ++i) {
