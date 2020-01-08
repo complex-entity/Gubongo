@@ -17,7 +17,7 @@ const config = {
         update: update
     },
     physics: {
-        default: 'impact',
+        default: "impact",
         impact: { gravity: 800 }
     },
 };
@@ -42,9 +42,9 @@ const worm_size = 32;
 function preload() {
     this.load.image("tiles", "assets/sprites/spritesheet_64x.png");
     this.load.image("bg", "assets/sprites/background.png");
-    this.load.spritesheet('player', 'assets/sprites/kukacok_v2.png', { frameWidth: worm_size, frameHeight: worm_size });
-    this.load.spritesheet('coin', 'assets/sprites/coin_anim.png', { frameWidth: coin_size, frameHeight: coin_size });
-    this.load.spritesheet('tyabi', 'assets/sprites/tyabi_sp.png', { frameWidth: 97, frameHeight: 120 });
+    this.load.spritesheet("player", "assets/sprites/kukacok_v2.png", { frameWidth: worm_size, frameHeight: worm_size });
+    this.load.spritesheet("coin", "assets/sprites/coin_anim.png", { frameWidth: coin_size, frameHeight: coin_size });
+    this.load.spritesheet("tyabi", "assets/sprites/tyabi_sp.png", { frameWidth: 97, frameHeight: 120 });
 }
 const levelData = new Uint8Array(30 * 17);
 const decorations = new Uint8Array(30 * 17);
@@ -100,7 +100,6 @@ function generate_new_level(scene) {
     for (let worm_name in worms_container) {
         const worm = worms_container[worm_name];
         worm.destroy();
-        delete worms_container[worm_name];
     }
     const mapGenerator = new MapGenerator(30, 17);
     mapGenerator.generate(7, true);
@@ -155,34 +154,34 @@ function generate_new_level(scene) {
 }
 function create() {
     scene_obj = this;
-    this.add.image(960, 540, 'bg');
-    tyabi.sprite = this.add.sprite(100, 100, 'tyabi');
-    coin = this.add.sprite(-100, -100, 'coin');
+    this.add.image(960, 540, "bg");
+    tyabi.sprite = this.add.sprite(100, 100, "tyabi");
+    coin = this.add.sprite(-100, -100, "coin");
     game.cache.tilemap.add("map", {
         format: Phaser.Tilemaps.Formats.TILED_JSON,
         data: levelJSONData
     });
     generate_new_level(this);
     this.anims.create({
-        key: 'coin-flip',
-        frames: this.anims.generateFrameNumbers('coin', { start: 0, end: 16 }),
+        key: "coin-flip",
+        frames: this.anims.generateFrameNumbers("coin", { start: 0, end: 16 }),
         frameRate: 20,
         repeat: -1
     });
-    coin.anims.play('coin-flip');
+    coin.anims.play("coin-flip");
     this.anims.create({
-        key: 'tyabi-turn-left',
-        frames: [{ key: 'tyabi', frame: 1 }],
+        key: "tyabi-turn-left",
+        frames: [{ key: "tyabi", frame: 1 }],
         frameRate: 20
     });
     this.anims.create({
-        key: 'tyabi-turn-right',
-        frames: [{ key: 'tyabi', frame: 0 }],
+        key: "tyabi-turn-right",
+        frames: [{ key: "tyabi", frame: 0 }],
         frameRate: 20
     });
     this.anims.create({
-        key: 'worm-left-1',
-        frames: this.anims.generateFrameNumbers('player', { start: 0, end: 1 }),
+        key: "worm-left-1",
+        frames: this.anims.generateFrameNumbers("player", { start: 0, end: 1 }),
         frameRate: 1,
         repeat: -1
     });
@@ -190,6 +189,9 @@ function create() {
 const restart_countdown_text = document.getElementById("restart_countdown");
 const restart_countdown_time = 20 * 1000;
 let restart_countdown_current_timer = restart_countdown_time;
+let spawning_worms_from_queue = false;
+let spawning_worms_from_queue_timer = 0;
+const spawning_worms_from_queue_interval = 200;
 function update(time, delta) {
     update_tyabi();
     if (time >= last_update + update_speed) {
@@ -205,12 +207,35 @@ function update(time, delta) {
             restart();
         }
     }
+    if (spawning_worms_from_queue) {
+        spawning_worms_from_queue_timer -= delta;
+        if (spawning_worms_from_queue_timer < 0) {
+            let empty = true;
+            for (let worm_name in worms_in_queue) {
+                empty = false;
+                const worm_data = worms_in_queue[worm_name];
+                delete worms_in_queue[worm_name];
+                add_worm(worm_data.months, worm_data.name, worm_data.color);
+                break;
+            }
+            if (empty) {
+                // no worms remaining
+                spawning_worms_from_queue = false;
+            }
+            else {
+                spawning_worms_from_queue_timer = spawning_worms_from_queue_interval;
+            }
+        }
+    }
 }
 function restart() {
-    document.getElementById('victory').className = '';
+    document.getElementById("victory").className = "";
     generate_new_level(scene_obj);
     has_winner = false;
     restart_countdown_current_timer = restart_countdown_time;
+    // spawn worms from the queue
+    spawning_worms_from_queue = true;
+    spawning_worms_from_queue_timer = spawning_worms_from_queue_interval;
 }
 // chance: [0, 1] 
 function random_chance(chance) {
@@ -237,10 +262,16 @@ class Worm {
         this.setFrame(this.direction);
         const style = { font: "bold 14px Arial", fill: this.name_color, align: "center" };
         this.label_text = scene_obj.add.text(tyabi.sprite.x, tyabi.sprite.y, " " + name + " ", style);
+        this.moving_to_tyabi_soon = false;
+        this.moving_to_tyabi_now = false;
+        this.moving_to_tyabi_delay = 0;
+        this.moving_to_tyabi_percent = 0;
+        this.moving_to_tyabi_start_position = { x: 0, y: 0 };
     }
     destroy() {
         this.sprite.destroy();
         this.label_text.destroy();
+        delete worms_container[this.name];
     }
     setFrame(direction) {
         const frame_by_level = 4 * this.level;
@@ -257,17 +288,51 @@ class Worm {
         this.sprite.setFrame(this.current_frame);
     }
     update(delta) {
+        if (this.moving_to_tyabi_soon) {
+            if (this.moving_to_tyabi_delay < 0) {
+                if (!this.moving_to_tyabi_now) {
+                    this.moving_to_tyabi_now = true;
+                    this.sprite.setGravity(0);
+                    this.moving_to_tyabi_start_position = { x: this.sprite.x, y: this.sprite.y };
+                }
+            }
+            else {
+                this.moving_to_tyabi_delay -= delta;
+            }
+        }
+        if (this.moving_to_tyabi_now) {
+            // move under 4 seconds
+            const percent = delta / 4000;
+            this.moving_to_tyabi_percent += percent;
+            if (this.moving_to_tyabi_percent >= 1) {
+                this.destroy();
+                return;
+            }
+            const t = this.moving_to_tyabi_percent * this.moving_to_tyabi_percent; // quadratic smoothing
+            this.sprite.x = this.moving_to_tyabi_start_position.x + (tyabi.sprite.x - this.moving_to_tyabi_start_position.x) * t;
+            this.sprite.y = this.moving_to_tyabi_start_position.y + (tyabi.sprite.y - this.moving_to_tyabi_start_position.y) * t;
+            this.sprite.rotation += t * 0.4 * (this.direction ? 1 : -1);
+        }
+        else {
+            this.move(delta);
+        }
         this.label_text.x = Math.floor(this.sprite.x) - (this.label_text.width / 2);
         this.label_text.y = Math.floor(this.sprite.y + this.sprite.height / 2) - 50;
-        this.move(delta);
     }
     check_victory() {
         if (!has_winner &&
             Math.abs(this.sprite.x - coin.x) <= (coin_size * 0.5 + worm_size * 0.5) &&
             Math.abs(this.sprite.y - coin.y) <= (coin_size * 0.5 + worm_size * 0.5)) {
             has_winner = true;
-            document.getElementById('winner_name').textContent = this.name;
-            document.getElementById('victory').className = 'fade_in';
+            document.getElementById("winner_name").textContent = this.name;
+            document.getElementById("victory").className = "fade_in";
+            for (let worm_name in worms_in_queue) {
+                delete worms_in_queue[worm_name];
+            }
+            for (let worm_name in worms_container) {
+                worms_container[worm_name].start_moving_to_tyabi();
+            }
+            spawning_worms_from_queue = false;
         }
     }
     move(delta) {
@@ -335,6 +400,10 @@ class Worm {
         }
         return false;
     }
+    start_moving_to_tyabi() {
+        this.moving_to_tyabi_soon = true;
+        this.moving_to_tyabi_delay = 2000 + Math.random() * 13000;
+    }
 }
 function update_tyabi() {
     const sprite = tyabi.sprite;
@@ -369,7 +438,8 @@ function get_worm_level(months) {
     // else we step by 6 months (12-17 months: 5, 18-23: 4, etc., up until 41 months; after 42 months, we return 0) 
     return Math.max(0, (months < 12 ? 9 : 7) - (months / 3 | 0));
 }
-const ws_client = new WebSocket('ws://home.molnarmark.hu:8888');
+const worms_in_queue = {};
+const ws_client = new WebSocket("ws://home.molnarmark.hu:8888");
 ws_client.onmessage = function (event) {
     var _a, _b;
     const ws_data = JSON.parse(event.data);
@@ -377,22 +447,37 @@ ws_client.onmessage = function (event) {
         window.location.reload();
     }
     else {
-        const display_name = ws_data['display-name'];
-        if (!worms_container.hasOwnProperty(display_name)) {
-            const name_color = (_a = ws_data.color, (_a !== null && _a !== void 0 ? _a : '#666666'));
-            const sub_months = Number(((_b = ws_data.badges) === null || _b === void 0 ? void 0 : _b.subscriber) || 0);
-            add_worm(sub_months, display_name, name_color);
-        }
+        const display_name = ws_data["display-name"];
+        const name_color = (_a = ws_data.color, (_a !== null && _a !== void 0 ? _a : "#666666"));
+        const sub_months = Number(((_b = ws_data.badges) === null || _b === void 0 ? void 0 : _b.subscriber) || 0);
+        try_add_worm(sub_months, display_name, name_color);
     }
 };
+function try_add_worm(months, name, color) {
+    if (has_winner) {
+        // add new worms to queue
+        worms_in_queue[name] = {
+            name: name,
+            color: color,
+            months: months
+        };
+    }
+    else {
+        if (!worms_container.hasOwnProperty(name)) {
+            add_worm(months, name, color);
+        }
+    }
+}
 function add_worm(months, name, color) {
     worms_container[name] = new Worm(get_worm_level(months), name, color);
 }
 let test_worm_index = 0;
 function spawn_test_worms(count) {
     for (let i = 0; i < count; ++i) {
-        const name = 'Worm' + (test_worm_index++);
-        worms_container[name] = new Worm(get_worm_level(Math.random() * 36 | 0), name, '#666666');
+        const display_name = "Worm" + (test_worm_index++);
+        const sub_months = Math.random() * 36 | 0;
+        const name_color = "#666666";
+        try_add_worm(sub_months, display_name, name_color);
     }
 }
 if (location.protocol === "file:" || location.hostname === "localhost") {
