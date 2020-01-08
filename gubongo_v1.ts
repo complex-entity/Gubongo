@@ -9,6 +9,9 @@ const config: Phaser.Types.Core.GameConfig = {
     width: screen_width,
     height: screen_height,
     parent: "game-container",
+    audio: {
+        noAudio: true
+    },
     render: {
         pixelArt: true,
     },
@@ -347,8 +350,19 @@ class Worm {
 
         this.setFrame(this.direction);
 
-        const style = { font: "bold 14px Arial", fill: this.name_color, align: "center" };
-        this.label_text = scene_obj!.add.text(tyabi.sprite!.x, tyabi.sprite!.y, " " + name + " ", style);
+        const style = {
+            font: "bold 14px Arial",
+            fill: this.name_color,
+            align: "center",
+            metrics: { // <-- nice performance improvement, if the metrics are not provided then it'll be calculated for every text (and it's slow)
+                ascent: 13,
+                descent: 3,
+                fontSize: 16
+            }
+        };
+        this.label_text = scene_obj!.add.text(0, 0, name, style);
+        this.label_text.x = Math.floor(this.sprite.x) - (this.label_text.width / 2);
+        this.label_text.y = Math.floor(this.sprite.y + this.sprite.height / 2) - 50;
 
         this.moving_to_tyabi_soon = false;
         this.moving_to_tyabi_now = false;
@@ -387,6 +401,10 @@ class Worm {
                     this.moving_to_tyabi_now = true;
                     this.sprite.setGravity(0);
                     this.moving_to_tyabi_start_position = { x: this.sprite.x, y: this.sprite.y };
+
+                    if (random_chance(0.5)) {
+                        this.direction = !this.direction;
+                    }
                 }
             }
             else {

@@ -66,7 +66,7 @@ class MapGenerator {
         this.coin = { x: coinX, y: coinY };
 
         // if we use greedy method for the first check, then we'll get maps with more dirt
-        this.makeReachable(Math.random() < 0.25);
+        this.makeReachable(rand() < 0.25);
 
         for (let i = 0; i < this.width; ++i) {
             for (let j = topEmptyRows; j < targetY - 1; ++j) {
@@ -367,10 +367,6 @@ class MapGenerator {
             }
             possibleTilesToAddOrRemoveToMakeTheMapMoreReachable.length = 0;
             tilesToCheck.push(this.XYToIndex(coinX, coinY));
-
-            if (greedy) {
-                floodFillRecalculate();
-            }
 
             checked.fill(0);
             this.reachableMap.fill(0);
