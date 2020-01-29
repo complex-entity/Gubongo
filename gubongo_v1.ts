@@ -59,7 +59,7 @@ const worm_size = 32;
 function preload(this: Phaser.Scene) {
     this.load.image("tiles", "assets/sprites/spritesheet_64x.png");
     this.load.image("bg", "assets/sprites/background.png");
-    this.load.spritesheet("player", "assets/sprites/kukacok_v2.png", { frameWidth: worm_size, frameHeight: worm_size });
+    this.load.spritesheet("player", "assets/sprites/kukacok_v3.png", { frameWidth: worm_size, frameHeight: worm_size });
     this.load.spritesheet("coin", "assets/sprites/coin_anim.png", { frameWidth: coin_size, frameHeight: coin_size });
     this.load.spritesheet("tyabi", "assets/sprites/tyabi_sp.png", { frameWidth: 97, frameHeight: 120 });
 }
@@ -575,9 +575,10 @@ function update_tyabi() {
 }
 
 function get_worm_level(months: number) {
-    // if months are less than 12, then we step by 3 months (0-2 months: 9, 3-5: 8, etc.)
-    // else we step by 6 months (12-17 months: 5, 18-23: 4, etc., up until 41 months; after 42 months, we return 0) 
-    return Math.max(0, (months < 12 ? 9 : 7) - (months / 3 | 0));
+
+    let worm_key =  months < 12 ? Math.max(0, 15 - (months / 3 | 0)) : Math.max(0, 13 - (months / 6 | 0));;
+
+    return worm_key;
 }
 
 interface WSEventData {
@@ -646,15 +647,18 @@ function try_add_worm(months: number, name: string, color: string) {
 }
 
 function add_worm(months: number, name: string, color: string) {
-    worms_container[name] = new Worm(get_worm_level(months), name, color);
+    let level = get_worm_level(months);
+    worms_container[name] = new Worm(level, name, color);
 }
 
 let test_worm_index = 0;
 function spawn_test_worms(count: number) {
+
     for (let i = 0; i < count; ++i) {
         const display_name = "Worm" + (test_worm_index++);
-        const sub_months = Math.random() * 36 | 0;
+        const sub_months = i;
         const name_color = "#666666";
+
         try_add_worm(sub_months, display_name, name_color);
     }
 }
@@ -662,6 +666,6 @@ function spawn_test_worms(count: number) {
 if (location.protocol === "file:" || location.hostname === "localhost") {
     window.addEventListener("keydown", ev => {
         if (ev.key === "s")
-            spawn_test_worms(20);
+            spawn_test_worms(80);
     });
 }
