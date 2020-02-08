@@ -272,7 +272,7 @@ function update(this: Phaser.Scene, time: number, delta: number) {
                 empty = false;
                 const worm_data = worms_in_queue[worm_name];
                 delete worms_in_queue[worm_name];
-                add_worm(worm_data.months, worm_data.name, worm_data.color);
+                try_add_worm(worm_data.months, worm_data.name, worm_data.color);
                 break;
             }
 
